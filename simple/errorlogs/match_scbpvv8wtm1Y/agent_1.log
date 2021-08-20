@@ -1,0 +1,11 @@
+=== Agent Install Log ===
+=== Agent Compile Log ===
+=== Agent Error Log ===
+Traceback (most recent call last):
+  File "/home/tk/Kaggle/Lux/simple/main.py", line 3, in <module>
+    from agent import agent
+  File "/home/tk/Kaggle/Lux/simple/agent.py", line 1, in <module>
+    import math, sys, extensions
+  File "/home/tk/Kaggle/Lux/simple/extensions.py", line 3, in <module>
+    from simple.lux.game import Game
+ModuleNotFoundError: No module named 'simple'

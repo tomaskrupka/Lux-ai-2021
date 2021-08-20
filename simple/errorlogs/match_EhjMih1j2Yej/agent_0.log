@@ -1,0 +1,11 @@
+=== Agent Install Log ===
+=== Agent Compile Log ===
+=== Agent Error Log ===
+Traceback (most recent call last):
+  File "/home/tk/Kaggle/Lux/simple/main.py", line 32, in <module>
+    actions = agent(observation, None)
+  File "/home/tk/Kaggle/Lux/simple/agent.py", line 79, in agent
+    target_position = extensions.get_nearest_adjacent_empty(unit.pos, city, game_state)
+  File "/home/tk/Kaggle/Lux/simple/extensions.py", line 28, in get_nearest_adjacent_empty
+    cell_is_empty = (not cell.has_resource()) & cell.citytile is None
+TypeError: unsupported operand type(s) for &: 'bool' and 'NoneType'

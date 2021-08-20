@@ -1,0 +1,9 @@
+=== Agent Install Log ===
+=== Agent Compile Log ===
+=== Agent Error Log ===
+Traceback (most recent call last):
+  File "/home/tk/Kaggle/Lux/simple/main.py", line 32, in <module>
+    actions = agent(observation, None)
+  File "/home/tk/Kaggle/Lux/simple/agent.py", line 79, in agent
+    if closest_dist == 1 & city.fuel > city.get_light_upkeep() * 10:
+TypeError: unsupported operand type(s) for &: 'int' and 'float'
