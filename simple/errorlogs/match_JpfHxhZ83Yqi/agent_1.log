@@ -1,0 +1,7 @@
+=== Agent Install Log ===
+=== Agent Compile Log ===
+=== Agent Error Log ===
+Traceback (most recent call last):
+  File "/home/tk/Kaggle/Lux/simple/agent.py", line 11, in <module>
+    from .lux.game_map import Cell
+ImportError: attempted relative import with no known parent package

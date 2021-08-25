@@ -1,0 +1,11 @@
+=== Agent Install Log ===
+=== Agent Compile Log ===
+=== Agent Error Log ===
+Traceback (most recent call last):
+  File "/home/tk/Kaggle/Lux/simple/main.py", line 32, in <module>
+    actions = agent(observation, None)
+  File "/home/tk/Kaggle/Lux/simple/agent.py", line 78, in agent
+    if extensions.can_survive_night(city):
+  File "/home/tk/Kaggle/Lux/simple/extensions.py", line 44, in can_survive_night
+    if unit.is_worker():
+AttributeError: 'City' object has no attribute 'is_worker'

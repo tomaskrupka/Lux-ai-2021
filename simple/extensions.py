@@ -2,7 +2,7 @@ import math
 
 from lux.game import Game
 from lux.game_map import Position
-from lux.game_objects import City
+from lux.game_objects import City, Unit
 
 
 def get_distance(pos: Position, city: City) -> int:
@@ -13,7 +13,7 @@ def get_distance(pos: Position, city: City) -> int:
             return 0
         elif distance < min_distance:
             min_distance = distance
-    return distance
+    return min_distance
 
 
 def get_nearest_adjacent_empty(pos: Position, city: City, game_state: Game) -> Position:
@@ -36,5 +36,12 @@ def get_nearest_adjacent_empty(pos: Position, city: City, game_state: Game) -> P
     return position
 
 
-def can_survive_night(city: City):
+def can_city_survive_night(city: City) -> bool:
     return city.fuel >= city.get_light_upkeep() * 10
+
+
+def can_unit_survive_night(unit: Unit) -> bool:
+    if unit.is_worker():
+        return unit.get_cargo_space_left() <= 60
+    else:
+        return True
