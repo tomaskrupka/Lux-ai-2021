@@ -1,15 +1,19 @@
 import extensions
 import math
 
+
 if __package__ == "":
     # for kaggle-environments
     from lux.game import Game
     from lux.constants import Constants
+    from lux import annotate
+
 else:
     # for CLI tool
     from .lux.game import Game
     from .lux.game_map import Cell
     from .lux.constants import Constants
+    from .lux import annotate
 
 DIRECTIONS = Constants.DIRECTIONS
 game_state = None
@@ -72,11 +76,12 @@ def agent(observation, configuration):
                                 closest_dist = dist
                                 closest_city_tile = city_tile
                     if closest_city_tile is not None:
-                        # we have a city to return to.
                         city = player.cities[closest_city_tile.cityid]
                         # Expand the city.
                         if extensions.can_city_survive_night(city):
+                            actions.append(annotate.sidetext('survives'))
                             target_position = extensions.get_nearest_adjacent_empty(unit.pos, city, game_state)
+                            actions.append(annotate.line(unit.pos.x, unit.pos.y, target_position.x, target_position.y))
                             move_dir = unit.pos.direction_to(target_position)
                             if move_dir == DIRECTIONS.CENTER:
                                 actions.append(unit.build_city())
@@ -84,9 +89,13 @@ def agent(observation, configuration):
                                 actions.append(unit.move(move_dir))
                         # Return to the city, not enough fuel in the city.
                         else:
+                            actions.append(annotate.sidetext('dies'))
                             target_position = closest_city_tile.pos
                             move_dir = unit.pos.direction_to(target_position)
                             actions.append(unit.move(move_dir))
+                else:
+                    actions.append(unit.build_city())
+
 
     # you can add debug annotations using the functions in the annotate object
     # actions.append(annotate.circle(0, 0))

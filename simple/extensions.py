@@ -24,15 +24,16 @@ def get_nearest_adjacent_empty(pos: Position, city: City, game_state: Game) -> P
             map_position = Position(x, y)
             if get_distance(map_position, city) != 1:
                 continue
-            cell = game_state.map.get_cell(x, y)
-            cell_is_empty = (not cell.has_resource()) & (cell.citytile is None)
-            if not cell_is_empty:
-                continue
-            distance = pos.distance_to(map_position)
-            # Found tile adjacent to the city that is closer to the position, save it.
-            if distance < min_distance_pos_adjacent:
-                min_distance_pos_adjacent = distance
-                position = map_position
+            else:
+                cell = game_state.map.get_cell(x, y)
+                cell_is_empty = (not cell.has_resource()) and (cell.citytile is None)
+                if not cell_is_empty:
+                    continue
+                distance = pos.distance_to(map_position)
+                # Found tile adjacent to the city that is closer to the position, save it.
+                if distance < min_distance_pos_adjacent:
+                    min_distance_pos_adjacent = distance
+                    position = map_position
     return position
 
 
