@@ -46,3 +46,16 @@ def can_unit_survive_night(unit: Unit) -> bool:
         return unit.get_cargo_space_left() <= 60
     else:
         return True
+
+
+def get_nearest_resource(unit: Unit, game_state: Game) -> (Position, int):
+    distance_nearest_resource = math.inf
+    position_nearest_resource = None
+    for x in range(game_state.map_width):
+        for y in range(game_state.map_height):
+            position = Position(x, y)
+            distance = unit.pos.distance_to(position)
+            if distance < distance_nearest_resource:
+                distance_nearest_resource = distance
+                position_nearest_resource = position
+    return position_nearest_resource, distance_nearest_resource
