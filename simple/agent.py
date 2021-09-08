@@ -62,13 +62,19 @@ def agent(observation, configuration):
         actions.append(annotate.x(worker.pos.x, worker.pos.y))
         if worker_in_city:
 
-            # Will you survive going to the nearest resource?
-            nearest_resource = extensions.get_nearest_resource(worker, game_state)
+            #Yes: Is any resource adjacent to the city?
+
+
+            # Yes: Will you survive going to the nearest resource?
+            nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(worker, game_state)
             days_to_night = 30 - (game_state.turn % 40)
-            can_reach_resource = nearest_resource[1] * 2 < days_to_night
+            can_reach_resource = nearest_resource_dist * 2 < days_to_night
             if can_reach_resource:
 
-                # Go mining
+                ### Quest: Go mining
+                # Are you next to a resource?
+
+
 
 
 

@@ -59,3 +59,7 @@ def get_nearest_resource(unit: Unit, game_state: Game) -> (Position, int):
                 distance_nearest_resource = distance
                 position_nearest_resource = position
     return position_nearest_resource, distance_nearest_resource
+
+# Gets position of a resource that is the nearest to input position and adjacent to input city.
+def get_nearest_adjacent_resource(pos: Position, city: City, game_state: Game) -> Position:
+    for tile in city.citytiles:
