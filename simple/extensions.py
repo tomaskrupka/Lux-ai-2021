@@ -2,7 +2,7 @@ import math
 
 from lux.game import Game
 from lux.game_map import Position
-from lux.game_objects import City, Unit
+from lux.game_objects import City, CityTile, Unit, Player
 
 
 def get_distance(pos: Position, city: City) -> int:
@@ -60,6 +60,30 @@ def get_nearest_resource(unit: Unit, game_state: Game) -> (Position, int):
                 position_nearest_resource = position
     return position_nearest_resource, distance_nearest_resource
 
+
 # Gets position of a resource that is the nearest to input position and adjacent to input city.
 def get_nearest_adjacent_resource(pos: Position, city: City, game_state: Game) -> Position:
-    for tile in city.citytiles:
+    min_distance_pos_adjacent = math.inf
+    position = None
+    for x in range(game_state.map_width):
+        for y in range(game_state.map_height):
+            map_position = Position(x, y)
+            if get_distance(map_position, city) != 1:
+                continue
+            else:
+                cell = game_state.map.get_cell(x, y)
+                if not cell.has_resource():
+                    continue
+                distance = pos.distance_to(map_position)
+                # Found tile adjacent to the city that is closer to the position, save it.
+                if distance < min_distance_pos_adjacent:
+                    min_distance_pos_adjacent = distance
+                    position = map_position
+    return position
+
+
+def is_unit_in_city(player: Player, unit: Unit) -> CityTile:
+    for k, city in player.cities.items():
+        for tile in city.citytiles:
+            if unit.pos.equals(tile.pos):
+                return tile
