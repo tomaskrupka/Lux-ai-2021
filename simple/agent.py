@@ -58,11 +58,12 @@ def agent(observation, configuration):
     for worker in [unit for unit in player.units if unit.is_worker() and unit.can_act()]:
 
         # Are you in a city?
-        worker_in_city = any(city for k, city in player.cities.items() if any(tile for tile in city.citytiles if tile.pos.equals(worker.pos)))
+        worker_in_city = any(city for k, city in player.cities.items() if
+                             any(tile for tile in city.citytiles if tile.pos.equals(worker.pos)))
         actions.append(annotate.x(worker.pos.x, worker.pos.y))
         if worker_in_city:
 
-            #Yes: Is any resource adjacent to the city?
+            # Yes: Is any resource adjacent to the city?
             nearest_adjacent_resource = extensions.get_nearest_adjacent_resource(worker.pos, city, game_state)
             if nearest_adjacent_resource is None:
 
@@ -72,7 +73,44 @@ def agent(observation, configuration):
                 can_reach_resource = nearest_resource_dist * 2 < days_to_night
                 if can_reach_resource:
 
-                    ### Quest: Go mining
+                    # Quest: Go mining
+                    # Are you next to a resource? No as in a city that's not next to a resource.
+                    nearest_resource_dir = worker.pos.direction_to(nearest_resource_pos)
+                    actions.append(worker.move(nearest_resource_dir))
+
+        else:
+
+            # No: Do you have free capacity?
+            has_free_capacity = worker.get_cargo_space_left() > 0
+            if has_free_capacity:
+
+                # Yes: Go mining:
+                # Are you next to a resource?
+                adjacent_resource_position = extensions.get_adjacent_resource(worker, game_state)
+                if adjacent_resource_position is None:
+
+                    # No: Find a way towards resource
+                    nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(worker, game_state)
+                    nearest_resource_dir = worker.pos.direction_to(nearest_resource_pos)
+                    actions.append(worker.move(nearest_resource_dir))
+            else:
+
+                # No: Are there any surviving cities?
+                if len(player.cities) == 0:
+
+                    # No: Start a new city.
+                    actions.append(worker.build_city())
+                else:
+
+                    # Yes: Is any city low on fuel?
+                    not_surviving_city = next(city for k, city in player.cities.items() if not extensions.can_city_survive_night(city))
+                    if not_surviving_city is None:
+
+                        # No: Can any city be expanded?
+
+
+                        # Yes: Return to the first city that's low on fuel.
+                        min_distance, min_distance_pos = extensions.get_shortest_way_to_city(worker, city)
 
 
 
