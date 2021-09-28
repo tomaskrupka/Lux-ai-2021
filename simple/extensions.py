@@ -110,3 +110,21 @@ def get_shortest_way_to_city(unit: Unit, city: City):
             min_distance = distance
             min_distance_pos = tile.pos
     return min_distance, min_distance_pos
+
+
+def get_adjacent_empty(pos: Position, game_state: Game):
+    for x in range(max(0, pos.x - 1), min(game_state.map_width, pos.x + 1)):
+        for y in range(max(0, pos.y - 1), min(game_state.map_height, pos.y + 1)):
+            current_cell = game_state.map.get_cell(x, y)
+            if current_cell.has_resource() or current_cell.citytile is not None:
+                continue
+            else:
+                return Position(x, y)
+    return None
+
+
+def is_city_expandable(city: City, game_state: Game) -> bool:
+    for tile in city.citytiles:
+        if get_adjacent_empty(tile.pos, game_state) is not None:
+            return True
+    return False

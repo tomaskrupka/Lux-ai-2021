@@ -73,7 +73,7 @@ def agent(observation, configuration):
                 can_reach_resource = nearest_resource_dist * 2 < days_to_night
                 if can_reach_resource:
 
-                    # Quest: Go mining
+                    # Yes: Quest: Go mining
                     # Are you next to a resource? No as in a city that's not next to a resource.
                     nearest_resource_dir = worker.pos.direction_to(nearest_resource_pos)
                     actions.append(worker.move(nearest_resource_dir))
@@ -107,6 +107,27 @@ def agent(observation, configuration):
                     if not_surviving_city is None:
 
                         # No: Can any city be expanded?
+                        expandable_city = next(city for k, city in player.cities.items() if extensions.is_city_expandable())
+                        if expandable_city is None:
+
+                            # No: Start a city. Are you next to a resource?
+                            if extensions.get_adjacent_resource(worker, game_state) is None:
+
+                                # No: Find a way towards resource, go there.
+                                pos_res, dist_res = extensions.get_nearest_resource(worker, game_state)
+                                actions.append(worker.move(worker.pos.direction_to(pos_res)))
+
+                            else:
+
+                                # Yes: Are you on an empty tile?
+
+
+                        else:
+
+                            # Pick a city to return to.
+                            dist_city, pos_city = extensions.get_shortest_way_to_city(worker, expandable_city)
+
+                                # Quest: Return to city.
 
 
                         # Yes: Return to the first city that's low on fuel.
