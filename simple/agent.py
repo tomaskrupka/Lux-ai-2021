@@ -44,7 +44,7 @@ def agent(observation, configuration):
             if cell.has_resource():
                 resource_tiles.append(cell)
 
-    owned_city_tiles = sum(len(city.citytiles) for city in player.cities.values())
+    owned_city_tiles = sum(len(city.citytiles) for k, city in player.cities.items())
     owned_units = len(player.units)
 
     # Cities
@@ -58,14 +58,13 @@ def agent(observation, configuration):
     for worker in [unit for unit in player.units if unit.is_worker() and unit.can_act()]:
 
         # Are you in a city?
-        city_worker_in = next((city for k, city in player.cities.items() if any(tile for tile in city.citytiles if tile.pos.equals(worker.pos))), None)
+        city_worker_in = next((city for k, city in player.cities.items() if
+                               any(tile for tile in city.citytiles if tile.pos.equals(worker.pos))), None)
 
         if city_worker_in is not None:
 
-            actions.append(annotate.sidetext('a'))
-
             # Yes: Is any resource adjacent to the city?
-            nearest_adjacent_resource = extensions.get_nearest_adjacent_resource(worker.pos,city_worker_in, game_state)
+            nearest_adjacent_resource = extensions.get_nearest_adjacent_resource(worker.pos, city_worker_in, game_state)
             if nearest_adjacent_resource is None:
 
                 # No: Will you survive going to the nearest resource?
@@ -80,23 +79,29 @@ def agent(observation, configuration):
 
         else:
 
-            actions.append(annotate.sidetext('worker out of city'))
-
             # No: Do you have free capacity?
             has_free_capacity = worker.get_cargo_space_left() > 0
-
-            actions.append(annotate.text(worker.pos.x, worker.pos.y, worker.get_cargo_space_left()))
 
             if has_free_capacity:
 
                 # Yes: Go mining:
                 # Are you next to a resource?
+
                 adjacent_resource_position = extensions.get_adjacent_resource(worker, game_state)
+                # if adjacent_resource_position is None:
+                #   print('None')
+                # else:
+                #   print(str(adjacent_resource_position.x) + " " + str(adjacent_resource_position.y))
+
                 if adjacent_resource_position is None:
                     # No: Find a way towards resource
+
                     nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(worker, game_state)
                     nearest_resource_dir = worker.pos.direction_to(nearest_resource_pos)
                     actions.append(worker.move(nearest_resource_dir))
+
+                # else:
+
             else:
 
                 # No: Are there any surviving cities?
@@ -107,12 +112,16 @@ def agent(observation, configuration):
                 else:
 
                     # Yes: Is any city low on fuel?
-                    not_surviving_city = next((city for k, city in player.cities.items() if not extensions.can_city_survive_night(city)), None)
+                    not_surviving_city = next(
+                        (city for k, city in player.cities.items() if not extensions.can_city_survive_night(city)),
+                        None)
                     if not_surviving_city is None:
 
+                        actions.append(annotate.sidetext('surviving'))
                         # No: Can any city be expanded?
                         expandable_city = next(
-                            (city for k, city in player.cities.items() if extensions.is_city_expandable(city, game_state)), None)
+                            (city for k, city in player.cities.items() if
+                             extensions.is_city_expandable(city, game_state)), None)
                         if expandable_city is None:
 
                             # No: Start a city. Are you next to a resource?
@@ -139,7 +148,9 @@ def agent(observation, configuration):
                                     actions.append(worker.move(direction_nearest_empty))
                         else:
                             # Yes: Return to expandable city
-                            min_distance, min_distance_pos = extensions.get_shortest_way_to_city(worker, expandable_city)
+                            actions.append(annotate.sidetext('expandable'))
+                            min_distance, min_distance_pos = extensions.get_shortest_way_to_city(worker,
+                                                                                                 expandable_city)
                             direction_expandable_city = worker.pos.direction_to(min_distance_pos)
                             actions.append(worker.move(direction_expandable_city))
 
