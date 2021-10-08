@@ -54,12 +54,33 @@ def get_nearest_resource(unit: Unit, game_state: Game) -> (Position, int):
     position_nearest_resource = None
     for x in range(game_state.map_width):
         for y in range(game_state.map_height):
+            if not game_state.map.get_cell(x, y).has_resource():
+                continue
+
             position = Position(x, y)
             distance = unit.pos.distance_to(position)
             if distance < distance_nearest_resource:
                 distance_nearest_resource = distance
                 position_nearest_resource = position
     return position_nearest_resource, distance_nearest_resource
+
+
+def get_nearest_empty_tile(unit: Unit, game_state: Game) -> (Position, int):
+    distance_nearest_empty = math.inf
+    position_nearest_empty = None
+    for x in range(game_state.map_width):
+        for y in range(game_state.map_height):
+            if not is_empty(x, y, game_state):
+                continue
+
+            position = Position(x, y)
+            distance = unit.pos.distance_to(position)
+            if distance < distance_nearest_empty:
+                distance_nearest_empty = distance
+                position_nearest_empty = position
+    return position_nearest_empty, distance_nearest_empty
+
+
 
 
 # Gets position of a resource that is the nearest to input position and adjacent to input city.
@@ -121,6 +142,13 @@ def get_adjacent_empty(pos: Position, game_state: Game):
             else:
                 return Position(x, y)
     return None
+
+def is_empty(x, y, game_state):
+    is_empty(Position(x,y), game_state)
+
+def is_empty(pos: Position, game_state: Game):
+    cell = game_state.map.get_cell_by_pos(pos)
+    return not (cell.has_resource() or cell.citytile is not None)
 
 
 def is_city_expandable(city: City, game_state: Game) -> bool:
