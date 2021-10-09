@@ -1,6 +1,8 @@
 import extensions
 import math
 
+from return_to_city import return_to_city
+
 if __package__ == "":
     # for kaggle-environments
     from lux.game import Game
@@ -50,9 +52,12 @@ def agent(observation, configuration):
     # Cities
     for k, city in player.cities.items():
         for city_tile in city.citytiles:
-            if city_tile.can_act() and owned_units < owned_city_tiles:
-                actions.append(city_tile.build_worker())
-                owned_units += 1
+            if city_tile.can_act():
+                if owned_units < owned_city_tiles:
+                    actions.append(city_tile.build_worker())
+                    owned_units += 1
+                else:
+                    actions.append(city_tile.research())
 
     # Units
     for worker in [unit for unit in player.units if unit.is_worker() and unit.can_act()]:
@@ -149,13 +154,11 @@ def agent(observation, configuration):
                         else:
                             # Yes: Return to expandable city
                             actions.append(annotate.sidetext('expandable'))
-                            min_distance, min_distance_pos = extensions.get_shortest_way_to_city(worker,
-                                                                                                 expandable_city)
-                            direction_expandable_city = worker.pos.direction_to(min_distance_pos)
-                            actions.append(worker.move(direction_expandable_city))
+                            actions.append(return_to_city(worker, expandable_city, game_state))
 
                     else:
                         # Yes: Return to city low on fuel
+                        actions.append(return_to_city(worker, not_surviving_city, game_state))
                         min_distance, min_distance_pos = extensions.get_shortest_way_to_city(worker, not_surviving_city)
                         direction_low_fuel_city = worker.pos.direction_to(min_distance_pos)
                         actions.append(worker.move(direction_low_fuel_city))

@@ -70,7 +70,7 @@ def get_nearest_empty_tile(unit: Unit, game_state: Game) -> (Position, int):
     position_nearest_empty = None
     for x in range(game_state.map_width):
         for y in range(game_state.map_height):
-            if not is_empty(x, y, game_state):
+            if not is_empty(Position(x, y), game_state):
                 continue
 
             position = Position(x, y)
@@ -79,8 +79,6 @@ def get_nearest_empty_tile(unit: Unit, game_state: Game) -> (Position, int):
                 distance_nearest_empty = distance
                 position_nearest_empty = position
     return position_nearest_empty, distance_nearest_empty
-
-
 
 
 # Gets position of a resource that is the nearest to input position and adjacent to input city.
@@ -111,34 +109,27 @@ def is_unit_in_city(player: Player, unit: Unit) -> CityTile:
             if unit.pos.equals(tile.pos):
                 return tile
 
-def get_adjacent_positions(pos: Position, game_state: Game):
-    #Todo
+
+def get_adjacent_positions(x, y, w):
+    return [(a, b) for (a, b) in [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)] if (0 <= a < w and 0 <= b < w)]
 
 
-def get_adjacent_resource(unit: Unit, game_state: Game) -> Optional[Position]:
-    for x in range(max(unit.pos.x - 1, 0), min(unit.pos.x + 2, game_state.map_width)):
-        for y in range(max(unit.pos.y - 1, 0), min(unit.pos.y + 2, game_state.map_height)):
-            # Exclude diagonally adjacent
-            if unit.pos.x != x and unit.pos.y != y:
-                continue
-            if game_state.map.get_cell(x, y).has_resource():
-                return Position(x, y)
+def get_adjacent_resource(unit, game_state):
+    for p in get_adjacent_positions(unit.pos.x, unit.pos.y, game_state.map_width):
+        if game_state.map.get_cell(p[0], p[1]).has_resource():
+            return Position(p[0], p[1])
     return None
 
-def get_adjacent_empty(pos: Position, game_state: Game):
-    for x in range(max(0, pos.x - 1), min(game_state.map_width, pos.x + 2)):
-        for y in range(max(0, pos.y - 1), min(game_state.map_height, pos.y + 2)):
-            current_cell = game_state.map.get_cell(x, y)
-            if current_cell.has_resource() or current_cell.citytile is not None:
-                continue
-            else:
-                return Position(x, y)
+
+def get_adjacent_empty(pos, game_state):
+    for p in get_adjacent_positions(pos.x, pos.y, game_state.map_width):
+        cell = game_state.map.get_cell(p[0], p[1])
+        if cell.has_resource() or cell.citytile is not None:
+            continue
+        else:
+            return Position(p[0], p[1])
     return None
 
-def get_adjacent_city(pos: Position, game_state: Game):
-    for x in range(max(0, pos.x - 1), min(game_state.map_width, pos.x + 2)):
-        for y in range(max(0, pos.y - 1), min(game_state.map_height, pos.y + 2)):
-            current_cell = game_state.map.get_cell(x, y)
 
 def get_shortest_way_to_city(unit: Unit, city: City):
     min_distance = math.inf
@@ -150,10 +141,6 @@ def get_shortest_way_to_city(unit: Unit, city: City):
             min_distance_pos = tile.pos
     return min_distance, min_distance_pos
 
-
-
-def is_empty(x, y, game_state):
-    is_empty(Position(x,y), game_state)
 
 def is_empty(pos: Position, game_state: Game):
     cell = game_state.map.get_cell_by_pos(pos)
