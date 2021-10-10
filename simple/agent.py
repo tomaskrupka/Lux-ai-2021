@@ -1,7 +1,11 @@
+
+
 import extensions
 import math
 
 from return_to_city import return_to_city
+from cluster import detect_clusters_2
+
 
 if __package__ == "":
     # for kaggle-environments
@@ -34,7 +38,13 @@ def agent(observation, configuration):
 
     actions = []
 
-    ### AI Code goes down here! ### 
+    ### AI Code goes down here! ###
+
+    clusters = detect_clusters_2(game_state)
+    actions.append(annotate.sidetext("clusters: " + str(len(clusters))))
+
+    next_round_free_moves = [[True] * game_state.map_width] * game_state.map_height
+
     player = game_state.players[observation.player]
     opponent = game_state.players[(observation.player + 1) % 2]
     width, height = game_state.map.width, game_state.map.height
@@ -93,13 +103,15 @@ def agent(observation, configuration):
                 # Are you next to a resource?
 
                 adjacent_resource_position = extensions.get_adjacent_resource(worker, game_state)
-                # if adjacent_resource_position is None:
-                #   print('None')
-                # else:
-                #   print(str(adjacent_resource_position.x) + " " + str(adjacent_resource_position.y))
-
                 if adjacent_resource_position is None:
+
                     # No: Find a way towards resource
+
+                    possible_moves = extensions.get_possible_moves(worker, game_state)
+
+                    # Todo: redo in line with Workflow.Algorithms.md
+                    for possible_move in possible_moves:
+                        pass
 
                     nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(worker, game_state)
                     nearest_resource_dir = worker.pos.direction_to(nearest_resource_pos)

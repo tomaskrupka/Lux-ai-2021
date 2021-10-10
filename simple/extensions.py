@@ -48,6 +48,10 @@ def can_unit_survive_night(unit: Unit) -> bool:
     else:
         return True
 
+def get_nearest_mining_pos(pos, game_state):
+    distance_nearest_resource = math.inf
+    position_nearest_resource = None
+
 
 def get_nearest_resource(unit: Unit, game_state: Game) -> (Position, int):
     distance_nearest_resource = math.inf
@@ -152,3 +156,12 @@ def is_city_expandable(city: City, game_state: Game) -> bool:
         if get_adjacent_empty(tile.pos, game_state) is not None:
             return True
     return False
+
+
+def get_possible_moves(unit, game_state: Game):
+    possible_moves = []
+    for p in get_adjacent_positions(unit.pos.x, unit.pos.y, game_state.map_width):
+        city_tile = game_state.map.get_cell_by_pos(p).citytile
+        if city_tile is None or city_tile.team == unit.team:
+            possible_moves.append(p)
+    return possible_moves
