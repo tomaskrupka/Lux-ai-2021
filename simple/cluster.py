@@ -3,7 +3,7 @@ import extensions
 from lux.game import Game
 
 
-# Todo: This merges clusters based on proximity (any common adjacent cell). Account for resource_type?
+# Todo: This merges clusters based on proximity (any common adjacent cell). Account for resource_type.
 
 def detect_clusters(game_state: Game):
     clusters = [[]]
@@ -41,7 +41,12 @@ def detect_clusters_2(game_state: Game):
             if game_state.map.get_cell(x, y).has_resource():
                 this_cell_cluster = None
                 for cluster_id, cluster in clusters.items():
-                    if any(a for (a, b) in cluster if (a == x and abs(b - y) == 1) or ((b == y) and abs(a - x) == 1)):
+                    # this_cell_resource = game_state.map.get_cell(x, y).resource.type
+                    # if any(a for (a, b) in cluster if (((a == x and abs(b - y) == 1) or (
+                    #         (b == y) and abs(a - x) == 1) or (abs(b - y == 1) and abs(a - x == 1))) and
+                    #                                    game_state.map.get_cell(a,
+                    #                                                            b).resource.type == this_cell_resource)):
+                    if belongs_to_cluster(x, y, cluster, game_state):
                         if this_cell_cluster is None:
                             this_cell_cluster = cluster
                             cluster.append((x, y))
@@ -55,6 +60,21 @@ def detect_clusters_2(game_state: Game):
     for cluster_id in cluster_ids_to_remove:
         clusters.pop(cluster_id)
     return clusters
+
+
+def belongs_to_cluster(x, y, cluster, game_state):
+    pos_resource_type = game_state.map.get_cell(x, y).resource.type
+    (a, b) = cluster[0]
+    cluster_resource_type = game_state.map.get_cell(a, b).resource.type
+    if pos_resource_type != cluster_resource_type:
+        return False
+    for (a, b) in cluster:
+        if abs(b - y) == 1 and abs(a - x) == 1:
+            return True
+        if (a == x and abs(b - y) == 1) or ((b == y) and abs(a - x) == 1) or (abs(b - y == 1) and abs(a - x == 1)):
+            return True
+    return False
+
 
 class Cluster:
     def __init__(self, resource_type, positions):
