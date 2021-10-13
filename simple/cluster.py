@@ -3,36 +3,7 @@ import extensions
 from lux.game import Game
 
 
-# Todo: This merges clusters based on proximity (any common adjacent cell). Account for resource_type.
-
 def detect_clusters(game_state: Game):
-    clusters = [[]]
-    clusters_to_remove = [[]]
-    for x in range(game_state.map_width):
-        for y in range(game_state.map_height):
-            if game_state.map.get_cell(x, y).has_resource():
-                this_cell_cluster = None
-                for cluster in clusters:
-                    if any(a for (a, b) in cluster if (a == x and abs(b - y) == 1) or ((b == y) and abs(a - x) == 1)):
-                        if this_cell_cluster is None:
-                            this_cell_cluster = cluster
-                            cluster.append((x, y))
-                        else:
-                            # Cell has already been assigned to a cluster. Merging clusters
-                            clusters_to_remove.append(cluster)
-                            for cell in cluster:
-                                this_cell_cluster.append(cell)
-
-                if this_cell_cluster is None:
-                    clusters.append([(x, y)])
-
-    for cluster in clusters_to_remove:
-        clusters.remove(cluster)
-
-    return clusters
-
-
-def detect_clusters_2(game_state: Game):
     clusters = dict()
     cluster_ids_to_remove = set()
     last_cluster_id = -1
@@ -41,11 +12,8 @@ def detect_clusters_2(game_state: Game):
             if game_state.map.get_cell(x, y).has_resource():
                 this_cell_cluster = None
                 for cluster_id, cluster in clusters.items():
-                    # this_cell_resource = game_state.map.get_cell(x, y).resource.type
-                    # if any(a for (a, b) in cluster if (((a == x and abs(b - y) == 1) or (
-                    #         (b == y) and abs(a - x) == 1) or (abs(b - y == 1) and abs(a - x == 1))) and
-                    #                                    game_state.map.get_cell(a,
-                    #                                                            b).resource.type == this_cell_resource)):
+                    if cluster_id in cluster_ids_to_remove:
+                        continue
                     if belongs_to_cluster(x, y, cluster, game_state):
                         if this_cell_cluster is None:
                             this_cell_cluster = cluster
@@ -69,9 +37,7 @@ def belongs_to_cluster(x, y, cluster, game_state):
     if pos_resource_type != cluster_resource_type:
         return False
     for (a, b) in cluster:
-        if abs(b - y) == 1 and abs(a - x) == 1:
-            return True
-        if (a == x and abs(b - y) == 1) or ((b == y) and abs(a - x) == 1) or (abs(b - y == 1) and abs(a - x == 1)):
+        if (a == x and abs(b - y) == 1) or ((b == y) and abs(a - x) == 1) or ((abs(b - y) == 1) and (abs(a - x) == 1)):
             return True
     return False
 
