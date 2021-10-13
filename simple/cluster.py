@@ -3,7 +3,15 @@ import extensions
 from lux.game import Game
 
 
-def detect_clusters(game_state: Game):
+def get_clusters(game_state: Game):
+    clusters = []
+    coordinates_lists = detect_clusters_coordinates(game_state)
+    for cluster_id, coordinates_list in coordinates_lists.items():
+        clusters.append(Cluster(coordinates_list, game_state))
+    return clusters
+
+
+def detect_clusters_coordinates(game_state: Game):
     clusters = dict()
     cluster_ids_to_remove = set()
     last_cluster_id = -1
@@ -43,9 +51,21 @@ def belongs_to_cluster(x, y, cluster, game_state):
 
 
 class Cluster:
-    def __init__(self, resource_type, positions):
-        self.resource_type = resource_type
-        self.positions = positions
+
+    def __init__(self, coordinates_list, game_state):
+        self.positions = []
+        self.mining_positions = set()
+        self.resource_type = game_state.map.get_cell(coordinates_list[0][0], coordinates_list[0][1]).resource.type
+        for (a, b) in coordinates_list:
+            self.positions.append(Position(a, b))
+            for adjacent_position in extensions.get_adjacent_positions(a, b, game_state.map_width):
+                self.mining_positions.add(adjacent_position)
+
+    def is_all_access_points_secured(self):
+        pass
+
+    def is_self_sustainable(self):
+        pass
 
     def get_empty_adjacent_positions(self, game_state: Game):
         mining_positions = set()

@@ -48,17 +48,23 @@ def can_unit_survive_night(unit: Unit) -> bool:
     else:
         return True
 
+
 def get_nearest_mining_pos(pos, game_state):
     distance_nearest_resource = math.inf
     position_nearest_resource = None
 
 
-def get_nearest_resource(unit: Unit, game_state: Game) -> (Position, int):
+def get_nearest_resource(unit, game_state, max_resource_type):
     distance_nearest_resource = math.inf
     position_nearest_resource = None
     for x in range(game_state.map_width):
         for y in range(game_state.map_height):
-            if not game_state.map.get_cell(x, y).has_resource():
+            cell = game_state.map.get_cell(x, y)
+
+            if not cell.has_resource():
+                continue
+
+            if not is_cell_resource_researched(cell, max_resource_type):
                 continue
 
             position = Position(x, y)
@@ -67,6 +73,14 @@ def get_nearest_resource(unit: Unit, game_state: Game) -> (Position, int):
                 distance_nearest_resource = distance
                 position_nearest_resource = position
     return position_nearest_resource, distance_nearest_resource
+
+
+def is_cell_resource_researched(cell, max_resource_type):
+    if max_resource_type == "wood" and cell.resource.type != "wood":
+        return False
+    if max_resource_type == "coal" and cell.resource.type == "uranium":
+        return False
+    return True
 
 
 def get_nearest_empty_tile(unit: Unit, game_state: Game) -> (Position, int):
@@ -86,7 +100,7 @@ def get_nearest_empty_tile(unit: Unit, game_state: Game) -> (Position, int):
 
 
 # Gets position of a resource that is the nearest to input position and adjacent to input city.
-def get_nearest_adjacent_resource(pos: Position, city: City, game_state: Game) -> Position:
+def get_nearest_adjacent_resource(pos: Position, city: City, game_state: Game, max_resource_type) -> Position:
     min_distance_pos_adjacent = math.inf
     position = None
     for x in range(game_state.map_width):
@@ -98,6 +112,9 @@ def get_nearest_adjacent_resource(pos: Position, city: City, game_state: Game) -
                 cell = game_state.map.get_cell(x, y)
                 if not cell.has_resource():
                     continue
+                if not is_cell_resource_researched(cell, max_resource_type):
+                    continue
+
                 distance = pos.distance_to(map_position)
 
                 # Found tile adjacent to the city that is closer to the position, save it.
@@ -118,9 +135,10 @@ def get_adjacent_positions(x, y, w):
     return [(a, b) for (a, b) in [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)] if (0 <= a < w and 0 <= b < w)]
 
 
-def get_adjacent_resource(unit, game_state):
+def get_adjacent_resource(unit, game_state, max_resource_type):
     for p in get_adjacent_positions(unit.pos.x, unit.pos.y, game_state.map_width):
-        if game_state.map.get_cell(p[0], p[1]).has_resource():
+        cell = game_state.map.get_cell(p[0], p[1])
+        if cell.has_resource() and is_cell_resource_researched(cell, max_resource_type):
             return Position(p[0], p[1])
     return None
 
@@ -158,10 +176,24 @@ def is_city_expandable(city: City, game_state: Game) -> bool:
     return False
 
 
+# Adjacent positions minus opponent cities
 def get_possible_moves(unit, game_state: Game):
     possible_moves = []
     for p in get_adjacent_positions(unit.pos.x, unit.pos.y, game_state.map_width):
-        city_tile = game_state.map.get_cell_by_pos(p).citytile
+        city_tile = game_state.map.get_cell_by_pos(Position(p[0], p[1])).citytile
         if city_tile is None or city_tile.team == unit.team:
             possible_moves.append(p)
     return possible_moves
+
+
+def get_new_position(position, direction):
+    if direction == 's':
+        return Position(position.x, position.y + 1)
+    if direction == 'w':
+        return Position(position.x - 1, position.y)
+    if direction == 'n':
+        return Position(position.x, position.y - 1)
+    if direction == 'e':
+        return Position(position.x + 1, position.y)
+    if direction == 'c':
+        return position

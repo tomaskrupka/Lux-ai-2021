@@ -1,11 +1,8 @@
 
-
+import cluster
+import return_to_city
 import extensions
 import math
-
-from return_to_city import return_to_city
-from cluster import detect_clusters_2
-
 
 if __package__ == "":
     # for kaggle-environments
@@ -40,12 +37,20 @@ def agent(observation, configuration):
 
     ### AI Code goes down here! ###
 
-    clusters = detect_clusters_2(game_state)
-    actions.append(annotate.sidetext("clusters: " + str(len(clusters))))
+    clusters = cluster.get_clusters(game_state)
 
-    next_round_free_moves = [[True] * game_state.map_width] * game_state.map_height
+    taken_moves = set()
 
     player = game_state.players[observation.player]
+
+    max_resource_type = "wood"
+
+    if player.research_points >= 50:
+        max_resource_type = "coal"
+
+    if player.research_points >= 200:
+        max_resource_type = "uranium"
+
     opponent = game_state.players[(observation.player + 1) % 2]
     width, height = game_state.map.width, game_state.map.height
 
@@ -79,18 +84,22 @@ def agent(observation, configuration):
         if city_worker_in is not None:
 
             # Yes: Is any resource adjacent to the city?
-            nearest_adjacent_resource = extensions.get_nearest_adjacent_resource(worker.pos, city_worker_in, game_state)
+            nearest_adjacent_resource = extensions.get_nearest_adjacent_resource(worker.pos, city_worker_in, game_state, max_resource_type)
             if nearest_adjacent_resource is None:
 
                 # No: Will you survive going to the nearest resource?
-                nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(worker, game_state)
+                nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(worker, game_state, max_resource_type)
                 days_to_night = 30 - (game_state.turn % 40)
                 can_reach_resource = nearest_resource_dist * 2 < days_to_night
                 if can_reach_resource:
                     # Yes: Quest: Go mining
                     # Are you next to a resource? No as in a city that's not next to a resource.
                     nearest_resource_dir = worker.pos.direction_to(nearest_resource_pos)
-                    actions.append(worker.move(nearest_resource_dir))
+                    new_position = extensions.get_new_position(worker.pos, nearest_resource_dir)
+
+                    if (new_position.x, new_position.y) not in taken_moves:
+                        taken_moves.add((new_position.x, new_position.y))
+                        actions.append(worker.move(nearest_resource_dir))
 
         else:
 
@@ -102,7 +111,7 @@ def agent(observation, configuration):
                 # Yes: Go mining:
                 # Are you next to a resource?
 
-                adjacent_resource_position = extensions.get_adjacent_resource(worker, game_state)
+                adjacent_resource_position = extensions.get_adjacent_resource(worker, game_state, max_resource_type)
                 if adjacent_resource_position is None:
 
                     # No: Find a way towards resource
@@ -113,9 +122,13 @@ def agent(observation, configuration):
                     for possible_move in possible_moves:
                         pass
 
-                    nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(worker, game_state)
+                    nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(worker, game_state, max_resource_type)
                     nearest_resource_dir = worker.pos.direction_to(nearest_resource_pos)
-                    actions.append(worker.move(nearest_resource_dir))
+                    new_position = extensions.get_new_position(worker.pos, nearest_resource_dir)
+
+                    if (new_position.x, new_position.y) not in taken_moves:
+                        taken_moves.add((new_position.x, new_position.y))
+                        actions.append(worker.move(nearest_resource_dir))
 
                 # else:
 
@@ -142,11 +155,16 @@ def agent(observation, configuration):
                         if expandable_city is None:
 
                             # No: Start a city. Are you next to a resource?
-                            if extensions.get_adjacent_resource(worker, game_state) is None:
+                            if extensions.get_adjacent_resource(worker, game_state, max_resource_type) is None:
 
                                 # No: Find a way towards resource, go there.
-                                pos_res, dist_res = extensions.get_nearest_resource(worker, game_state)
-                                actions.append(worker.move(worker.pos.direction_to(pos_res)))
+                                pos_res, dist_res = extensions.get_nearest_resource(worker, game_state, max_resource_type)
+                                direction_nearest_resource = worker.pos.direction_to(pos_res)
+                                new_position = extensions.get_new_position(worker.pos, direction_nearest_resource)
+
+                                if (new_position.x, new_position.y) not in taken_moves:
+                                    taken_moves.add((new_position.x, new_position.y))
+                                    actions.append(worker.move(direction_nearest_resource))
                             else:
 
                                 # Yes: Are you on an empty tile?
@@ -162,18 +180,29 @@ def agent(observation, configuration):
                                     position_nearest_empty, distance_nearest_empty = extensions.get_nearest_empty_tile(
                                         worker, game_state)
                                     direction_nearest_empty = worker.pos.direction_to(position_nearest_empty)
-                                    actions.append(worker.move(direction_nearest_empty))
+
+                                    new_position = extensions.get_new_position(worker.pos, direction_nearest_empty)
+
+                                    if (new_position.x, new_position.y) not in taken_moves:
+                                        taken_moves.add((new_position.x, new_position.y))
+                                        actions.append(worker.move(direction_nearest_empty))
+
                         else:
                             # Yes: Return to expandable city
                             actions.append(annotate.sidetext('expandable'))
-                            actions.append(return_to_city(worker, expandable_city, game_state))
+                            actions.append(return_to_city.return_to_city(worker, expandable_city, game_state))
 
                     else:
                         # Yes: Return to city low on fuel
-                        actions.append(return_to_city(worker, not_surviving_city, game_state))
+                        actions.append(return_to_city.return_to_city(worker, not_surviving_city, game_state))
                         min_distance, min_distance_pos = extensions.get_shortest_way_to_city(worker, not_surviving_city)
                         direction_low_fuel_city = worker.pos.direction_to(min_distance_pos)
-                        actions.append(worker.move(direction_low_fuel_city))
+
+                        new_position = extensions.get_new_position(worker.pos, direction_low_fuel_city)
+
+                        if (new_position.x, new_position.y) not in taken_moves:
+                            taken_moves.add((new_position.x, new_position.y))
+                            actions.append(worker.move(direction_low_fuel_city))
 
     # you can add debug annotations using the functions in the annotate object
     # actions.append(annotate.circle(0, 0))
