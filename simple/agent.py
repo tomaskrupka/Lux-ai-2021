@@ -1,6 +1,6 @@
 
 import cluster
-import return_to_city
+import actions
 import extensions
 import math
 
@@ -118,7 +118,6 @@ def agent(observation, configuration):
 
                     possible_moves = extensions.get_possible_moves(worker, game_state)
 
-                    # Todo: redo in line with Workflow.Algorithms.md
                     for possible_move in possible_moves:
                         pass
 
@@ -190,11 +189,11 @@ def agent(observation, configuration):
                         else:
                             # Yes: Return to expandable city
                             actions.append(annotate.sidetext('expandable'))
-                            actions.append(return_to_city.return_to_city(worker, expandable_city, game_state))
+                            actions.append(actions.return_to_city(worker, expandable_city, game_state))
 
                     else:
                         # Yes: Return to city low on fuel
-                        actions.append(return_to_city.return_to_city(worker, not_surviving_city, game_state))
+                        actions.append(actions.return_to_city(worker, not_surviving_city, game_state))
                         min_distance, min_distance_pos = extensions.get_shortest_way_to_city(worker, not_surviving_city)
                         direction_low_fuel_city = worker.pos.direction_to(min_distance_pos)
 
