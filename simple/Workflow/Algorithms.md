@@ -1,4 +1,3 @@
-#The simple bot
 This is a rulebook according to which the 'simple bot' has been programmed.
 
 ## Agent
