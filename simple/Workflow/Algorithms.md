@@ -1,25 +1,26 @@
-This is a rulebook according to which the 'simple bot' has been programmed.
+The simple bot is a submission for the [2021 Lux AI challenge](https://www.lux-ai.org/specs-2021). Its decision-making process is purely rule-based. In particular, there's no ML/AI involved.
 
 ## Agent
-The Agent is a singleton that lives through the whole game.
-Agent is the object that takes actions based on the `(observation, configuration)` parameters of every round.
+By the game specification, agent has to be
 
+>A function which given an observation generates an action.
 
-These actions are produced by the following workflow:
+Its workflow is as follows:
 
 1. Identify missions.
-1. Identify workers for the missions.
-1. `get-actions(mission)` for these workers.
+1. Assign workers to the missions.
+1. `get-actions(mission)` for the workers that have been assigned a mission.
 1. `get-actions()` for all other workers.
 1. call churn manager
 1. append all actions
 
 ## Worker
+
 The Worker is the static code (no objects are being instantiated for workers) that drives the behaviour of all the workers as the game objects. Therefore, all workers are clones as they follow the same built-in decision flow for prioritizing possible actions. Following are the principles that govern workers' behaviour.
 
 ### Behaviour
 
-workers:
+Workers:
 
 -  are transient and have no memory. A worker only lives as long as its code runs.
 1. are *autonomous*, i.e. capable of making a decision in a single run of the Worker code that depends only on the `game_state`,
