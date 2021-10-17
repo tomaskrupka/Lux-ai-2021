@@ -197,3 +197,20 @@ def get_new_position(position, direction):
         return Position(position.x + 1, position.y)
     if direction == 'c':
         return position
+
+
+def get_directions_to_target(position_from, position_to):
+    x_diff = position_to.x - position_from.x
+    y_diff = position_to.y - position_from.y
+    directions = []
+    if x_diff > 0:
+        directions.append('e')
+    if x_diff < 0:
+        directions.append('w')
+    if y_diff > 0:
+        directions.append('s')
+    if y_diff < 0:
+        directions.append('n')
+    if len(directions) == 0:
+        directions.append('c')
+    return directions

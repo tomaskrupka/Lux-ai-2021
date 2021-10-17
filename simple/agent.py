@@ -1,4 +1,3 @@
-
 import cluster
 import actions
 import extensions
@@ -10,12 +9,16 @@ if __package__ == "":
     from lux.constants import Constants
     from lux import annotate
 
+    from churn import UnitActions
+
 else:
     # for CLI tool
     from .lux.game import Game
     from .lux.game_map import Cell
     from .lux.constants import Constants
     from .lux import annotate
+
+    from .churn import UnitActions
 
 DIRECTIONS = Constants.DIRECTIONS
 game_state = None
@@ -38,9 +41,6 @@ def agent(observation, configuration):
     ### AI Code goes down here! ###
 
     clusters = cluster.get_clusters(game_state)
-
-    taken_moves = set()
-
     player = game_state.players[observation.player]
 
     max_resource_type = "wood"
@@ -75,7 +75,12 @@ def agent(observation, configuration):
                     actions.append(city_tile.research())
 
     # Units
+
+    units_actions = []
+
     for worker in [unit for unit in player.units if unit.is_worker() and unit.can_act()]:
+
+        positions = []
 
         # Are you in a city?
         city_worker_in = next((city for k, city in player.cities.items() if
@@ -84,22 +89,20 @@ def agent(observation, configuration):
         if city_worker_in is not None:
 
             # Yes: Is any resource adjacent to the city?
-            nearest_adjacent_resource = extensions.get_nearest_adjacent_resource(worker.pos, city_worker_in, game_state, max_resource_type)
+            nearest_adjacent_resource = extensions.get_nearest_adjacent_resource(worker.pos, city_worker_in, game_state,
+                                                                                 max_resource_type)
             if nearest_adjacent_resource is None:
 
                 # No: Will you survive going to the nearest resource?
-                nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(worker, game_state, max_resource_type)
+                nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(worker, game_state,
+                                                                                              max_resource_type)
                 days_to_night = 30 - (game_state.turn % 40)
                 can_reach_resource = nearest_resource_dist * 2 < days_to_night
+
                 if can_reach_resource:
                     # Yes: Quest: Go mining
-                    # Are you next to a resource? No as in a city that's not next to a resource.
-                    nearest_resource_dir = worker.pos.direction_to(nearest_resource_pos)
-                    new_position = extensions.get_new_position(worker.pos, nearest_resource_dir)
-
-                    if (new_position.x, new_position.y) not in taken_moves:
-                        taken_moves.add((new_position.x, new_position.y))
-                        actions.append(worker.move(nearest_resource_dir))
+                    positions.append(nearest_resource_pos)
+                    units_actions.append(UnitActions(worker, positions))
 
         else:
 
@@ -116,12 +119,8 @@ def agent(observation, configuration):
 
                     # No: Find a way towards resource
 
-                    possible_moves = extensions.get_possible_moves(worker, game_state)
-
-                    for possible_move in possible_moves:
-                        pass
-
-                    nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(worker, game_state, max_resource_type)
+                    nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(worker, game_state,
+                                                                                                  max_resource_type)
                     nearest_resource_dir = worker.pos.direction_to(nearest_resource_pos)
                     new_position = extensions.get_new_position(worker.pos, nearest_resource_dir)
 
@@ -157,7 +156,8 @@ def agent(observation, configuration):
                             if extensions.get_adjacent_resource(worker, game_state, max_resource_type) is None:
 
                                 # No: Find a way towards resource, go there.
-                                pos_res, dist_res = extensions.get_nearest_resource(worker, game_state, max_resource_type)
+                                pos_res, dist_res = extensions.get_nearest_resource(worker, game_state,
+                                                                                    max_resource_type)
                                 direction_nearest_resource = worker.pos.direction_to(pos_res)
                                 new_position = extensions.get_new_position(worker.pos, direction_nearest_resource)
 
