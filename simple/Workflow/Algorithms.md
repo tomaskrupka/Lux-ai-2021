@@ -1,13 +1,14 @@
 
 # Lux bot
 
-Lux bot is a submission for the [2021 Lux AI challenge](https://www.lux-ai.org/specs-2021). 
-It's a rule-based program, no ML involved.
+Lux bot is a submission for the [2021 Lux AI challenge](https://www.lux-ai.org/specs-2021).
 
 ## Agent
 By the game specification, the agent is
 
 >A function which given an observation generates an action.
+
+Agent is a rule-based program, no ML involved. 
 
 Its workflow is as follows:
 
@@ -17,21 +18,19 @@ Its workflow is as follows:
    - Classify my cities.
    - Classify opponent's cities.
 2. Based on the situation, develop operations.
-3. For each operation score workers by usefulness for the job.
-   - Groups of workers might have the same score, some workers might be unusable for the job.
-4. Score operations by importance 
-5. Create permutations of the list, calculating the **importance cost** of each permutation
+3. Score operations by importance.
+4. Create permutations of the list, calculating the **importance cost** of each permutation
 (how much are we prioritizing unimportant strategies by executing them in this order).
-6. Calculate **feasibility score** for each permutation of the strategies (order of execution) by
+5. Calculate **feasibility score** for each permutation of the strategies (order of execution) by
    - assigning specific workers to the strategy
    - removing them from the pool of available units (next strategy in this permutation shall not be able to 
    use these workers). <!-- This is wasteful if strategy does not care which worker to use. -->
    - blocking worker's new position (next strategy won't be able to use this position)
    - doing a few runs of this with different workers and moves from same churn cluster
    to mitigate the risk of rejecting (scoring low) a viable permutation just due to churn.
-7. Identify missions
-8. Identify the best order of execution using each one's importance cost and feasibility score.
-9. Assign one mission to one worker based on his ability to do that and how much effort will that be.
+6. Identify missions
+7. Identify the best order of execution using each one's importance cost and feasibility score.
+8. Assign one mission to one worker based on his ability to do that and how much effort will that be.
 
 
 ## Rationale
@@ -44,6 +43,12 @@ Most of the time some scoring is necessary to find a way out of contradictory ob
 - Build sustainably (avoid dying of cities).
 
 ## Operations
+Operations are bound to specific actions taking place. That includes specific workers.
+Therefore, each operation takes game_state as input and produces game_state as output.
+
+When assigning actions to workers and cities (thus removing these from the pool of available resources),
+operations follow hardcoded rules.
+
 - develop existing city (e.g. to secure a cluster)
 - start new city
 - refuel city
