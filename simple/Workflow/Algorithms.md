@@ -3,7 +3,24 @@
 
 Lux bot is a submission for the [2021 Lux AI challenge](https://www.lux-ai.org/specs-2021).
 
-## Agent
+## Rationale
+The bot builds on some universal ground rules which provide bounding limitations for developing [strategies](#strategy).
+It is only allowed to  
+
+- [Agent](#agent) has the final authority over actions submitted.
+- [Clusters](#cluster) have full autonomy over everything within their perimeter.
+- Units and cities have 
+
+## <a name="strategy"></a> Strategy
+
+Strategy is a set of rules that
+
+- Develop [cities](#city) around [clusters](#cluster).
+- Prioritize wood from start of game.
+- Try to gain control over whole cluster.
+- Build sustainably (avoid dying of cities).
+
+## <a name="Agent"></a> Agent
 By the game specification, the agent is
 
 >A function which given an observation generates an action.
@@ -13,70 +30,69 @@ Agent is a rule-based program, no ML involved.
 Its workflow is as follows:
 
 1. Read situation:
-   - Identify resource clusters.
-   - Identify worker clusters.
-   - Classify my cities.
-   - Classify opponent's cities.
-2. Based on the situation, develop operations.
-3. Score operations by importance.
-4. Create permutations of the list, calculating the **importance cost** of each permutation
-(how much are we prioritizing unimportant strategies by executing them in this order).
-5. Calculate **feasibility score** for each permutation of the strategies (order of execution) by
-   - assigning specific workers to the strategy
-   - removing them from the pool of available units (next strategy in this permutation shall not be able to 
-   use these workers). <!-- This is wasteful if strategy does not care which worker to use. -->
-   - blocking worker's new position (next strategy won't be able to use this position)
-   - doing a few runs of this with different workers and moves from same churn cluster
-   to mitigate the risk of rejecting (scoring low) a viable permutation just due to churn.
-6. Identify missions
-7. Identify the best order of execution using each one's importance cost and feasibility score.
-8. Assign one mission to one worker based on his ability to do that and how much effort will that be.
+    - Established [clusters](#cluster)
+    - Established clusters [flags](#flags)
+    - Vacant clusters
+    - Free units
+2. Based on the situation, develop [operations](#operation).
+3. Figure out how to [order the execution](#execution_order) of the operations.
+4. Based on the observed shortage of free units assign [units production](#producing_units) to the clusters.
+5. Trigger the [Develop operation](#operation-develop) for each cluster.
+6. Submit all actions.
 
+## <a name="cluster"></a> Cluster
 
-## Rationale
-These are the main rules the bot tries to observe.
-Most of the time some scoring is necessary to find a way out of contradictory objectives.
+Clusters govern themselves.
 
-- Build cities next to clusters.
-- Prioritize wood from start of game.
-- Try to gain control over whole cluster.
-- Build sustainably (avoid dying of cities).
+1. They have exclusive (no one else can) control over their perimeter, resources, units within.
+2. It's their exclusive responsibility to raise a [flag](#flags) should they need outer intervention.
+3. It's the [agent's](#agent) exclusive responsibility to observe the flags and react upon them.
 
-## Operations
+### <a name="flags"></a>Flags
+
+Clusters have the ability to signal about their state.
+The [agent](#agent) will issue [operations](#operation) based on these signals.
+
+- `Refuel(city)` City can't sustain itself through the upcoming night.
+
+## <a name="city"></a>City
+## <a name="operation"></a>Operations
+Operation is a function with encoded objective.
+Given the subject and resources it generates actions.
+[Agent](#agent) is responsible for identifying the subjects, allocating the resources and triggering the operation.
+
+### <a name="operation_develop"></a>Develop
+Clusters use this operation to govern themselves.
+[Agent](#agent) triggers this operation for each cluster once every round.
+
+#### Params
+- New units request.
+- State of perimeter (where it is possible to push new units out).
+- Units to pull in (e.g. for refuel).
+
+### Unconditional operations
+#### Establish
+#### <a name="refuel"></a>Refuel
+### <a name="execution_order"></a> Execution order
+
+O
+
+### Multiple workers for one job
+
 Operations are bound to specific actions taking place. That includes specific workers.
 Therefore, each operation takes game_state as input and produces game_state as output.
 
 When assigning actions to workers and cities (thus removing these from the pool of available resources),
 operations follow hardcoded rules.
 
-- develop existing city (e.g. to secure a cluster)
-- start new city
-- refuel city
-- block opponent from proceeding
-
-## Operations
-### Expand existing city
-Build more city tiles adjacent to those existing in this city.
-Every city that `can_develop()` raises this operation.
-#### Missions
-- Mine
-### Start new city
-### Refuel city
-## Resources
-The fact that a unit is in a city (or close) is a resource, it means that it will be easier to refuel.
-Penalty for abandoning city?
-City shall signal whether it's able to spawn new units at reasonable pace
-
-
-- mine for a city
-- mine for yourself
-- build a city tile
+## <a name="producing_units"></a>Producing units
+[Agent](#agent) can order the production of more units as a parameter to the [Develop operation](#operation_develop).
+[Cluster](#cluster) produces  
 
 ### Mining
 - Prioritize mining next to opponent's city
 - Cut opponent from mining positions
 
-### City
 - If sharing, mine as much as possible regardless of resource type
 - Optimize unit production x research
 - If occupying whole cluster
