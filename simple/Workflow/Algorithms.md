@@ -5,15 +5,19 @@ Lux bot is a submission for the [2021 Lux AI challenge](https://www.lux-ai.org/s
 
 ## Rationale
 The bot builds on some universal ground rules which provide bounding limitations for developing [strategies](#strategy).
-It is only allowed to  
+The only exception to any rule in this list is if following it would break a rule above it.
 
-- [Agent](#agent) has the final authority over actions submitted.
-- [Clusters](#cluster) have full autonomy over everything within their perimeter.
-- Units and cities have 
+1. [Agent](#agent) has the final authority over actions submitted.
+2. [Clusters](#cluster) have full autonomy over everything within their perimeter.
+3. Units and cities don't think for themselves.
 
 ## <a name="strategy"></a> Strategy
 
-Strategy is a set of rules that
+Strategy is a set of rules that govern the bot behaviour. These can be tweaked, parametrized and changed.
+This way, multiple bots following different strategies
+(e.g. aggressive, local, conquering...) can be developed quickly using the same codebase. 
+
+The cookbook for the current implementation is roughly as follows:
 
 - Develop [cities](#city) around [clusters](#cluster).
 - Prioritize wood from start of game.
