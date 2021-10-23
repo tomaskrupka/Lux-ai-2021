@@ -72,6 +72,6 @@ class Cluster:
         for position in self.positions:
             adjacent_positions = extensions.get_adjacent_positions(position.x, position.y, game_state.map_width)
             for adj_position in adjacent_positions:
-                if extensions.is_empty(adj_position):
+                if extensions.is_empty(adj_position, game_state):
                     mining_positions.add((position.x, position.y))
         return mining_positions
