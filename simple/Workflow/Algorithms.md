@@ -5,7 +5,7 @@ Lux bot is a submission for the [2021 Lux AI challenge](https://www.lux-ai.org/s
 
 ## Rationale
 The bot builds on some universal ground rules which provide bounding limitations for developing [strategies](#strategy).
-The only exception to any rule in this list is if following it would break a rule above it.
+The only exception to any rule in this list is when it breaks a rule above it.
 
 1. [Agent](#agent) has the final authority over actions submitted.
 2. [Clusters](#cluster) have full autonomy over everything within their perimeter.
@@ -29,9 +29,7 @@ By the game specification, the agent is
 
 >A function which given an observation generates an action.
 
-Agent is a rule-based program, no ML involved. 
-
-Its workflow is as follows:
+Agent is a rule-based program, no ML involved. Its workflow is as follows:
 
 1. Read situation:
     - Established [clusters](#cluster)
@@ -57,7 +55,8 @@ Clusters govern themselves.
 Clusters have the ability to signal about their state.
 The [agent](#agent) will issue [operations](#operation) based on these signals.
 
-- `Refuel(city)` City can't sustain itself through the upcoming night.
+- `Refuel : city` City can't sustain itself through the upcoming night.
+- `Can_export : city, resource` City can export resources.
 
 ## <a name="city"></a>City
 ## <a name="operation"></a>Operations
