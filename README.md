@@ -37,9 +37,10 @@ Agent is a rule-based program, no ML involved. Its workflow is as follows:
     - Vacant clusters
     - Free units
 2. Based on the situation, develop [operations](#operation).
-3. Figure out how to [order the execution](#execution_order) of the operations.
-4. Based on the observed shortage of free units assign [units production](#producing_units) to the clusters.
-5. Trigger the [Develop operation](#operation-develop) for each cluster.
+3. [Order the execution](#execution_order) of the operations.
+4. Execute the [open operations](#open_operations), gather resulting actions.
+4. Based on the observed shortage of free units when developing and ordering the open operations, assign [units production](#producing_units) to the clusters.
+5. Trigger the [Develop operation](#operation-develop) for each cluster, gather resulting actions.
 6. Submit all actions.
 
 ## <a name="cluster"></a> Cluster
@@ -73,7 +74,8 @@ Clusters use this operation to govern themselves.
 - State of perimeter (where it is possible to push new units out).
 - Units to pull in (e.g. for refuel).
 
-### Unconditional operations
+### Open operations <a name="open_operations"></a>
+Operations that are not bound to a specific [cluster](#cluster). Involve missions for one or more free workers.
 #### Establish
 #### <a name="refuel"></a>Refuel
 ### <a name="execution_order"></a> Execution order
