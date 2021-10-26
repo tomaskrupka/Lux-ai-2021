@@ -3,6 +3,8 @@ import actions
 import extensions
 import math
 
+from bot_orchestrated import recon
+
 if __package__ == "":
     # for kaggle-environments
     from lux.game import Game

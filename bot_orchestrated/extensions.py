@@ -135,6 +135,20 @@ def get_adjacent_positions(x, y, w):
     return [(a, b) for (a, b) in [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)] if (0 <= a < w and 0 <= b < w)]
 
 
+def get_adjacent_positions_with_corners(x, y, w):
+    return [(a, b) for (a, b) in
+            [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1), (x - 1, y - 1), (x - 1, y + 1), (x + 1, y - 1),
+             (x + 1, y + 1)] if (0 <= a < w and 0 <= b < w)]
+
+
+def get_adjacent_positions_cluster(coordinates_xys, w):
+    adjacent_xys = set()
+    for (x, y) in coordinates_xys:
+        for ab in get_adjacent_positions_with_corners(x, y, w):
+            adjacent_xys.add(ab)
+    return adjacent_xys
+
+
 def get_adjacent_resource(unit, game_state, max_resource_type):
     for p in get_adjacent_positions(unit.pos.x, unit.pos.y, game_state.map_width):
         cell = game_state.map.get_cell(p[0], p[1])
