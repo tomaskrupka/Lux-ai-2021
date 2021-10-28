@@ -39,9 +39,9 @@ Agent is a rule-based program, no ML involved. Its workflow is as follows:
 2. Based on the situation, develop [operations](#operation).
 3. [Order the execution](#execution_order) of the operations.
 4. Execute the [open operations](#open_operations), gather resulting actions.
-4. Based on the observed shortage of free units when developing and ordering the open operations, assign [units production](#producing_units) to the clusters.
-5. Trigger the [Develop operation](#operation-develop) for each cluster, gather resulting actions.
-6. Submit all actions.
+5. Based on the observed shortage of free units when developing and ordering the open operations, assign [units production](#producing_units) to the clusters.
+6. Trigger the [Develop operation](#operation-develop) for each cluster, gather resulting actions.
+7. Submit all actions.
 
 ## <a name="cluster"></a> Cluster
 

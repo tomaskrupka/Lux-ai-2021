@@ -144,7 +144,7 @@ def get_adjacent_positions_with_corners(x, y, w):
 def get_adjacent_positions_cluster(coordinates_xys, w):
     adjacent_xys = set()
     for (x, y) in coordinates_xys:
-        for ab in get_adjacent_positions_with_corners(x, y, w):
+        for ab in get_adjacent_positions(x, y, w):
             adjacent_xys.add(ab)
     return adjacent_xys
 
