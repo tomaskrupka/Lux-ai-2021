@@ -8,30 +8,41 @@ def get_free_units(game_state, clusters):
         pass
 
 
-def get_player_city_tiles_xys(player):
-    player_city_tiles_xys = set()
+def get_player_city_tiles(player):
+    player_city_tiles = dict()
     for k, city in player.cities.items():
         for tile in city.citytiles:
-            player_city_tiles_xys.add((tile.pos.x, tile.pos.y))
-    return player_city_tiles_xys
+            player_city_tiles[(tile.pos.x, tile.pos.y)] = (city, tile)
+    return player_city_tiles
 
 
-def detect_clusters(game_state, player, my_city_tiles_xys, opponent_city_tiles_xys):
+def get_player_unit_tiles(player: Player):
+    player_worker_tiles = dict()
+    for unit in player.units:
+        (x, y) = (unit.pos.x, unit.pos.y)
+        if (x, y) in player_worker_tiles:
+            player_worker_tiles[(x, y)].append(unit)
+        else:
+            player_worker_tiles[(x, y)] = [unit]
+    return player_worker_tiles
+
+
+def detect_clusters(game_state, player, my_city_tiles, opponent_city_tiles, my_units, opponent_units):
     clusters = []
-    coordinates_lists = detect_clusters_coordinates(game_state, my_city_tiles_xys)
+    coordinates_lists = detect_clusters_coordinates(game_state, my_city_tiles)
     for cluster_id, coordinates_list in coordinates_lists.items():
-        clusters.append(Cluster(coordinates_list, game_state, my_city_tiles_xys, opponent_city_tiles_xys))
+        clusters.append(Cluster(coordinates_list, game_state, my_city_tiles, opponent_city_tiles, my_units, opponent_units))
     return clusters
 
 
-def detect_clusters_coordinates(game_state: Game, player_city_tiles_xys):
+def detect_clusters_coordinates(game_state: Game, player_city_tiles):
     clusters = dict()
     cluster_ids_to_remove = set()
     last_cluster_id = -1
     for x in range(game_state.map_width):
         for y in range(game_state.map_height):
             cell = game_state.map.get_cell(x, y)
-            if cell.has_resource() or ((x, y) in player_city_tiles_xys):
+            if cell.has_resource() or ((x, y) in player_city_tiles):
                 cell_cluster = None
                 for cluster_id, cluster in clusters.items():
                     if cluster_id in cluster_ids_to_remove:

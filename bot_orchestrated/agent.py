@@ -36,11 +36,13 @@ def agent(observation, configuration):
 
     # Read situation
 
-    player = game_state.players[observation.player]
+    me = game_state.players[observation.player]
     opponent = game_state.players[(observation.player + 1) % 2]
-    my_city_tiles_xys = recon.get_player_city_tiles_xys(player)
-    opponent_city_tiles_xys = recon.get_player_city_tiles_xys(opponent)
-    clusters = recon.detect_clusters(game_state, player, my_city_tiles_xys, opponent_city_tiles_xys)
+    my_city_tiles = recon.get_player_city_tiles(me)
+    opponent_city_tiles = recon.get_player_city_tiles(opponent)
+    my_units = recon.get_player_unit_tiles(me)
+    opponent_units = recon.get_player_unit_tiles(opponent)
+    clusters = recon.detect_clusters(game_state, me, my_city_tiles, opponent_city_tiles, my_units, opponent_units)
 
 
     # you can add debug annotations using the functions in the annotate object
