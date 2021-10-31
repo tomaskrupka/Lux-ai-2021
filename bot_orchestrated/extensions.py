@@ -131,8 +131,9 @@ def is_unit_in_city(player: Player, unit: Unit) -> CityTile:
                 return tile
 
 
-def get_adjacent_positions(x, y, w):
-    return [(a, b) for (a, b) in [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)] if (0 <= a < w and 0 <= b < w)]
+def get_adjacent_positions(p: Position, w):
+    return [Position(a, b) for (a, b) in [(p.x - 1, p.y), (p.x + 1, p.y), (p.x, p.y - 1), (p.x, p.y + 1)] if
+            (0 <= a < w and 0 <= b < w)]
 
 
 def get_adjacent_positions_with_corners(x, y, w):
@@ -141,29 +142,29 @@ def get_adjacent_positions_with_corners(x, y, w):
              (x + 1, y + 1)] if (0 <= a < w and 0 <= b < w)]
 
 
-def get_adjacent_positions_cluster(coordinates_xys, w):
-    adjacent_xys = set()
-    for (x, y) in coordinates_xys:
-        for ab in get_adjacent_positions(x, y, w):
-            adjacent_xys.add(ab)
-    return adjacent_xys
+def get_adjacent_positions_cluster(coordinates, w):
+    adjacent_positions = set()
+    for position in coordinates:
+        for ab in get_adjacent_positions(position, w):
+            adjacent_positions.add(position)
+    return adjacent_positions
 
 
 def get_adjacent_resource(unit, game_state, max_resource_type):
-    for p in get_adjacent_positions(unit.pos.x, unit.pos.y, game_state.map_width):
-        cell = game_state.map.get_cell(p[0], p[1])
+    for p in get_adjacent_positions(unit.pos, game_state.map_width):
+        cell = game_state.map.get_cell_by_pos(p)
         if cell.has_resource() and is_cell_resource_researched(cell, max_resource_type):
-            return Position(p[0], p[1])
+            return p
     return None
 
 
 def get_adjacent_empty(pos, game_state):
-    for p in get_adjacent_positions(pos.x, pos.y, game_state.map_width):
-        cell = game_state.map.get_cell(p[0], p[1])
+    for p in get_adjacent_positions(pos, game_state.map_width):
+        cell = game_state.map.get_cell_by_pos(p)
         if cell.has_resource() or cell.citytile is not None:
             continue
         else:
-            return Position(p[0], p[1])
+            return p
     return None
 
 
@@ -193,8 +194,8 @@ def is_city_expandable(city: City, game_state: Game) -> bool:
 # Adjacent positions minus opponent cities
 def get_possible_moves(unit, game_state: Game):
     possible_moves = []
-    for p in get_adjacent_positions(unit.pos.x, unit.pos.y, game_state.map_width):
-        city_tile = game_state.map.get_cell_by_pos(Position(p[0], p[1])).citytile
+    for p in get_adjacent_positions(unit.pos, game_state.map_width):
+        city_tile = game_state.map.get_cell_by_pos(p).citytile
         if city_tile is None or city_tile.team == unit.team:
             possible_moves.append(p)
     return possible_moves

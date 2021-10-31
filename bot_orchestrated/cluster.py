@@ -11,8 +11,7 @@ from lux.game_objects import Player, CityTile, City, Unit
 class CellInfo:
     def __init__(
             self,
-            x: int,
-            y: int,
+            position: Position,
             is_empty: bool,
             my_city_tile: CityTile,
             opponent_city_tile: CityTile,
@@ -23,8 +22,7 @@ class CellInfo:
             opponent_units: list):
         self.adjacent_positions = None
         self.mining_potential = None
-        self.x = x
-        self.y = y
+        self.position = position
         self.is_empty = is_empty
         self.my_city_tile = my_city_tile
         self.opponent_city_tile = opponent_city_tile
@@ -44,39 +42,37 @@ class Cluster:
     def __init__(self, non_empty_coordinates, game_state: Game, my_city_tiles, opponent_city_tiles, my_units,
                  opponent_units):
         self.cell_infos = dict()
-        self.resource_xys = set()
-        self.development_coordinates = extensions.get_adjacent_positions_cluster(non_empty_coordinates,
-                                                                                 game_state.map_width)
-        all_cluster_coordinates = self.development_coordinates.union(non_empty_coordinates)
-        for (x, y) in all_cluster_coordinates:
-
-            cell_info = game_state.map.get_cell(x, y)
-            my_city_tile = my_city_tiles[(x, y)][1] if (x, y) in my_city_tiles else None
-            opponent_city_tile = opponent_city_tiles[(x, y)][1] if (x, y) in opponent_city_tiles else None
+        self.resource_positions = set()
+        self.development_positions = extensions.get_adjacent_positions_cluster(non_empty_coordinates,
+                                                                               game_state.map_width)
+        all_cluster_coordinates = self.development_positions.union(non_empty_coordinates)
+        for p in all_cluster_coordinates:
+            cell_info = game_state.map.get_cell_by_pos(p)
+            my_city_tile = my_city_tiles[p][1] if p in my_city_tiles else None
+            opponent_city_tile = opponent_city_tiles[p][1] if p in opponent_city_tiles else None
             has_resource = cell_info.has_resource()
             if has_resource:
-                self.resource_xys.add((x, y))
+                self.resource_positions.add(p)
             cell_info = CellInfo(
-                x=x,
-                y=y,
+                position=p,
                 my_city_tile=my_city_tile,
                 opponent_city_tile=opponent_city_tile,
-                my_city=my_city_tiles[(x, y)][0] if my_city_tile is not None else None,
-                opponent_city=opponent_city_tiles[(x, y)][0] if opponent_city_tile is not None else None,
+                my_city=my_city_tiles[p][0] if my_city_tile is not None else None,
+                opponent_city=opponent_city_tiles[p][0] if opponent_city_tile is not None else None,
                 resource=cell_info.resource,
                 is_empty=my_city_tile is None and opponent_city_tile is None and not has_resource,
-                my_units=my_units[(x, y)] if (x, y) in my_units else [],
-                opponent_units=opponent_units[(x, y)] if (x, y) in opponent_units else []
+                my_units=my_units[p] if p in my_units else [],
+                opponent_units=opponent_units[p] if p in opponent_units else []
             )
-            self.cell_infos[(x, y)] = cell_info
+            self.cell_infos[p] = cell_info
 
-        for cell_coords in self.cell_infos:
+        for cell_pos in self.cell_infos:
             resource_amounts = dict(WOOD=0, COAL=0, URANIUM=0)
-            adjacent_positions = extensions.get_adjacent_positions(cell_coords[0], cell_coords[1], game_state.map_width)
-            self.cell_infos[cell_coords].adjacent_positions = adjacent_positions
-            for xy in adjacent_positions + [cell_coords]:
-                if xy in self.cell_infos:
-                    cell_info = self.cell_infos[xy]
+            adjacent_positions = extensions.get_adjacent_positions(cell_pos, game_state.map_width)
+            self.cell_infos[cell_pos].adjacent_positions = adjacent_positions
+            for p in adjacent_positions + [cell_pos]:
+                if p in self.cell_infos:
+                    cell_info = self.cell_infos[p]
                     if cell_info.resource is None:
                         continue
                     else:
@@ -87,7 +83,7 @@ class Cluster:
                                 resource_amounts[
                                     RESOURCE_TYPE] += amount if amount < collection_rate else collection_rate
                                 break
-            self.cell_infos[cell_coords].mining_potential = resource_amounts
+            self.cell_infos[cell_pos].mining_potential = resource_amounts
 
 
 def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevelopmentSettings):
@@ -104,7 +100,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # build city tiles
     # TODO: exclude units coming to the city with resources.
-    for cell_coords, cell_info in cluster.cell_infos.items():
+    for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.is_empty and len(cell_info.my_units) > 0:
             unit: Unit
             unit = cell_info.my_units[0]
@@ -115,15 +111,15 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     move_options = []
     churn = dict()
     unmoved_units = []
-    for cell_coords, cell_info in cluster.cell_infos.items():
+    for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.resource is not None and len(cell_info.my_units) > 0:
-            adjacent_development_positions = get_adjacent_development_positions(cluster, cell_coords)
+            adjacent_development_positions = get_adjacent_development_positions(cluster, cell_pos)
             if len(adjacent_development_positions) > 0:
                 for adjacent_position in adjacent_development_positions:
                     churn[adjacent_position] = churn[adjacent_position] + 1 if adjacent_position in churn else 1
-                move_options.append([cell_coords, adjacent_development_positions])
+                move_options.append([cell_pos, adjacent_development_positions])
             else:
-                unmoved_units.append(cell_coords)
+                unmoved_units.append(cell_pos)
     # prioritize units movements by how many options they have
     move_options.sort(key=lambda x: (len(x[1])))
     move_demands = list(churn.items())
@@ -138,26 +134,26 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
             if move_coords in unit_moves and move_coords not in blocked_moves:
                 blocked_moves.add(move_coords)
                 unit = cluster.cell_infos[unit_coords].my_units[0]
-                actions.append(unit.move(extensions.get_directions_to_target(Position(unit_coords[0], unit_coords[1]), Position(move_coords[0], move_coords[1]))))
+                actions.append(unit.move(extensions.get_directions_to_target(Position(unit_coords[0], unit_coords[1]),
+                                                                             Position(move_coords[0], move_coords[1]))))
                 unit_moved = True
                 break
         if not unit_moved:
             unmoved_units.append(unit_coords)
 
 
-
-def get_adjacent_development_positions(cluster: Cluster, xy):
+def get_adjacent_development_positions(cluster: Cluster, p: Position):
     adjacent_development_positions = []
-    for (x, y) in cluster.development_coordinates:
-        if (x == xy[0] and abs(y - xy[1]) == 1) or (y == xy[1] and abs(x - xy[0]) == 1):
-            adjacent_development_positions.append((x, y))
+    for q in cluster.development_positions:
+        if (q.x == p.x and abs(q.y - p.y) == 1) or (q.y == p.y and abs(q.x - p.y) == 1):
+            adjacent_development_positions.append(q)
     return adjacent_development_positions
 
 
 def get_closest_development_position(cluster: Cluster, xy):
     min_dist = math.inf
     closest_position = None
-    for (x, y) in cluster.development_coordinates:
+    for (x, y) in cluster.development_positions:
         dist = abs(x - xy[0]) + abs(y - xy[1])
         if dist < min_dist:
             closest_position = (x, y)
