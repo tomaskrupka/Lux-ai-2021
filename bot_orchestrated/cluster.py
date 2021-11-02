@@ -101,35 +101,47 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # build city tiles
     # TODO: exclude units coming to the city with resources.
+    blocked_empty_tiles = []
     for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.is_empty and len(cell_info.my_units) > 0:
-            unit: Unit
             unit = cell_info.my_units[0]
+            blocked_empty_tiles.append(cell_pos)
             if unit.can_act() and unit.get_cargo_space_left() == 0:
                 actions.append(unit.build_city())
 
-    # step out of resource tiles
+    # step out of resource tiles where adjacent empty
     positions_options = []
-    blocked_resource_tiles = set()
+    blocked_units_on_resource = []
+    cannot_act_units_on_resource = []
+    can_act_units_on_resource = []
     for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.resource is not None and len(cell_info.my_units) > 0:
-            adjacent_development_positions = get_adjacent_development_positions(cluster, cell_pos)
-            if len(adjacent_development_positions) > 0:
-                positions_options.append([cell_pos, adjacent_development_positions])
+            if cell_info.my_units[0].can_act():
+                can_act_units_on_resource.append(cell_pos)
             else:
-                blocked_resource_tiles.add(cell_pos)
+                cannot_act_units_on_resource.append(cell_pos)
+    for pos in can_act_units_on_resource:
+        adjacent_development_positions = get_adjacent_development_positions(cluster, pos)
+        if len(adjacent_development_positions) > 0:
+            positions_options.append([pos, [p for p in adjacent_development_positions if p not in cannot_act_units_on_resource and p not in blocked_empty_tiles]])
+        else:
+            # had no adjacent development position
+            blocked_units_on_resource.append(pos)
     moves_solutions = solve_churn(positions_options)
     moves, blocked_positions = get_move_actions(moves_solutions, cluster)
     actions += moves
     for blocked_pos in blocked_positions:
-        blocked_resource_tiles.add(blocked_pos)
+        # had some adjacent development positions, but others took them
+        blocked_units_on_resource.append(blocked_pos)
+
+    # take a step towards empty where no adjacent empty
 
     # step out of cities into mining positions
     positions_options = []
     for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.my_city_tile is not None and len(cell_info.my_units) > 0:
             adjacent_mining_positions = get_adjacent_mining_positions(cluster, cell_pos)
-            free_adj_mining_positions = [p for p in adjacent_mining_positions if p not in blocked_resource_tiles]
+            free_adj_mining_positions = [p for p in adjacent_mining_positions if p not in blocked_units_on_resource and p not in cannot_act_units_on_resource and p not in blocked_empty_tiles]
             if len(free_adj_mining_positions) > 0:
                 positions_options.append([cell_pos, free_adj_mining_positions])
     moves_solutions = solve_churn(positions_options)
