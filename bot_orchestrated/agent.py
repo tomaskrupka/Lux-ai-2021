@@ -43,6 +43,10 @@ def agent(observation, configuration):
     my_units = recon.get_player_unit_tiles(me)
     opponent_units = recon.get_player_unit_tiles(opponent)
     clusters = recon.detect_clusters(game_state, me, my_city_tiles, opponent_city_tiles, my_units, opponent_units)
+    remaining_units_allowance = len(my_city_tiles) - len(my_units)
+    for c in clusters:
+        actions = actions + cluster.develop_cluster(c, cluster.ClusterDevelopmentSettings(
+            units_build_allowance=remaining_units_allowance))[0]
 
 
     # you can add debug annotations using the functions in the annotate object

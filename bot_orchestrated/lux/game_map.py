@@ -67,6 +67,9 @@ class Position:
     def __eq__(self, pos) -> bool:
         return self.x == pos.x and self.y == pos.y
 
+    def __hash__(self):
+        return (self.x, self.y).__hash__()
+
     def equals(self, pos):
         return self == pos
 

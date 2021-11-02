@@ -145,8 +145,8 @@ def get_adjacent_positions_with_corners(x, y, w):
 def get_adjacent_positions_cluster(coordinates, w):
     adjacent_positions = set()
     for position in coordinates:
-        for ab in get_adjacent_positions(position, w):
-            adjacent_positions.add(position)
+        for adjacent_position in get_adjacent_positions(position, w):
+            adjacent_positions.add(adjacent_position)
     return adjacent_positions
 
 
@@ -217,15 +217,12 @@ def get_new_position(position, direction):
 def get_directions_to_target(position_from, position_to):
     x_diff = position_to.x - position_from.x
     y_diff = position_to.y - position_from.y
-    directions = []
     if x_diff > 0:
-        directions.append('e')
+        return 'e'
     if x_diff < 0:
-        directions.append('w')
+        return 'w'
     if y_diff > 0:
-        directions.append('s')
+        return 's'
     if y_diff < 0:
-        directions.append('n')
-    if len(directions) == 0:
-        directions.append('c')
-    return directions
+        return 'n'
+    return 'c'

@@ -1,7 +1,6 @@
 import math
 from typing import NamedTuple
-
-from bot_orchestrated import extensions
+import extensions
 from lux.game import Game
 from lux.game_constants import GAME_CONSTANTS
 from lux.game_map import Resource, Position
@@ -43,9 +42,10 @@ class Cluster:
                  opponent_units):
         self.cell_infos = dict()
         self.resource_positions = set()
-        self.development_positions = extensions.get_adjacent_positions_cluster(non_empty_coordinates,
-                                                                               game_state.map_width)
-        all_cluster_coordinates = self.development_positions.union(non_empty_coordinates)
+        adjacent_positions = extensions.get_adjacent_positions_cluster(non_empty_coordinates, game_state.map_width)
+
+        all_cluster_coordinates = adjacent_positions.union(non_empty_coordinates)
+        self.development_positions = [pos for pos in all_cluster_coordinates if pos not in non_empty_coordinates]
         for p in all_cluster_coordinates:
             cell_info = game_state.map.get_cell_by_pos(p)
             my_city_tile = my_city_tiles[p][1] if p in my_city_tiles else None
@@ -94,9 +94,10 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
                       cell_info.my_city_tile is not None]:
         if city_cell.my_city_tile.can_act():
             if remaining_units_allowance > 0:
-                city_cell.my_city_tile.build_worker()
+                actions.append(city_cell.my_city_tile.build_worker())
+                remaining_units_allowance -= 1
             else:
-                city_cell.my_city_tile.research()
+                actions.append(city_cell.my_city_tile.research())
 
     # build city tiles
     # TODO: exclude units coming to the city with resources.
@@ -108,46 +109,104 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
                 actions.append(unit.build_city())
 
     # step out of resource tiles
-    move_options = []
-    churn = dict()
-    unmoved_units = []
+    positions_options = []
+    blocked_resource_tiles = set()
     for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.resource is not None and len(cell_info.my_units) > 0:
             adjacent_development_positions = get_adjacent_development_positions(cluster, cell_pos)
             if len(adjacent_development_positions) > 0:
-                for adjacent_position in adjacent_development_positions:
-                    churn[adjacent_position] = churn[adjacent_position] + 1 if adjacent_position in churn else 1
-                move_options.append([cell_pos, adjacent_development_positions])
+                positions_options.append([cell_pos, adjacent_development_positions])
             else:
-                unmoved_units.append(cell_pos)
-    # prioritize units movements by how many options they have
-    move_options.sort(key=lambda x: (len(x[1])))
+                blocked_resource_tiles.add(cell_pos)
+    moves_solutions = solve_churn(positions_options)
+    moves, blocked_positions = get_move_actions(moves_solutions, cluster)
+    actions += moves
+    for blocked_pos in blocked_positions:
+        blocked_resource_tiles.add(blocked_pos)
+
+    # step out of cities into mining positions
+    positions_options = []
+    for cell_pos, cell_info in cluster.cell_infos.items():
+        if cell_info.my_city_tile is not None and len(cell_info.my_units) > 0:
+            adjacent_mining_positions = get_adjacent_mining_positions(cluster, cell_pos)
+            free_adj_mining_positions = [p for p in adjacent_mining_positions if p not in blocked_resource_tiles]
+            if len(free_adj_mining_positions) > 0:
+                positions_options.append([cell_pos, free_adj_mining_positions])
+    moves_solutions = solve_churn(positions_options)
+    moves, blocked_positions = get_move_actions(moves_solutions, cluster)
+    actions += moves
+
+    return actions, remaining_units_allowance
+
+
+def get_move_actions(moves_solutions, cluster):
+    blocked_positions = []
+    actions = []
+    for pos, solutions in moves_solutions.items():
+        for target, unit in zip(solutions, cluster.cell_infos[pos].my_units):
+            if target is None:
+                blocked_positions.append(pos)
+            else:
+                direction = extensions.get_directions_to_target(pos, target)
+                actions.append(unit.move(direction))
+    return actions, blocked_positions
+
+
+def solve_churn(positions_options):
+    move_solutions = dict()
+    churn = dict()
+    for position, options in positions_options:
+        for option in options:
+            churn[option] = churn[option] + 1 if option in churn else 1
+    # units with least options first
+    positions_options.sort(key=lambda x: (len(x[1])))
     move_demands = list(churn.items())
+    # least demanded positions first
     move_demands.sort(key=lambda x: (x[1]))
     blocked_moves = set()
-    for cell_options in move_options:
-        unit_coords = cell_options[0]
-        unit_moves = cell_options[1]
+    for position_options in positions_options:
+        unit_pos = position_options[0]
+        unit_options = position_options[1]
         unit_moved = False
         for demand_option in move_demands:
-            move_coords = demand_option[0]
-            if move_coords in unit_moves and move_coords not in blocked_moves:
-                blocked_moves.add(move_coords)
-                unit = cluster.cell_infos[unit_coords].my_units[0]
-                actions.append(unit.move(extensions.get_directions_to_target(Position(unit_coords[0], unit_coords[1]),
-                                                                             Position(move_coords[0], move_coords[1]))))
+            move_pos = demand_option[0]
+            if move_pos in unit_options and move_pos not in blocked_moves:
+                blocked_moves.add(move_pos)
+                if unit_pos in move_solutions:
+                    move_solutions[unit_pos].append(move_pos)
+                else:
+                    move_solutions[unit_pos] = [move_pos]
                 unit_moved = True
                 break
         if not unit_moved:
-            unmoved_units.append(unit_coords)
+            if unit_pos in move_solutions:
+                move_solutions[unit_pos].append(None)
+            else:
+                move_solutions[unit_pos] = [None]
+    return move_solutions
 
 
 def get_adjacent_development_positions(cluster: Cluster, p: Position):
     adjacent_development_positions = []
+    if p in cluster.development_positions:
+        adjacent_development_positions.append(p)
     for q in cluster.development_positions:
-        if (q.x == p.x and abs(q.y - p.y) == 1) or (q.y == p.y and abs(q.x - p.y) == 1):
+        if (q.x == p.x and abs(q.y - p.y) == 1) or (q.y == p.y and abs(q.x - p.x) == 1):
             adjacent_development_positions.append(q)
     return adjacent_development_positions
+
+
+# TODO: account for research level.
+def get_adjacent_mining_positions(cluster: Cluster, p: Position):
+    adjacent_mining_positions = []
+    if cluster.cell_infos[p].mining_potential['WOOD'] > 0:
+        adjacent_mining_positions.append(p)
+    for cell_pos, cell_info in cluster.cell_infos.items():
+        if not p.is_adjacent(cell_pos):
+            continue
+        if cell_info.mining_potential['WOOD'] > 0:
+            adjacent_mining_positions.append(cell_pos)
+    return adjacent_mining_positions
 
 
 def get_closest_development_position(cluster: Cluster, xy):

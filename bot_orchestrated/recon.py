@@ -66,6 +66,6 @@ def detect_clusters_coordinates(game_state: Game, player_city_tiles):
 
 def _has_perimeter_overlap(x, y, cluster):
     for p in cluster:
-        if (p.a == x and abs(p.b - y) <= 2) or ((p.b == y) and abs(p.a - x) <= 2) or ((abs(p.b - y) == 1) and (abs(p.a - x) == 1)):
+        if (p.x == x and abs(p.y - y) <= 2) or ((p.y == y) and abs(p.x - x) <= 2) or ((abs(p.y - y) == 1) and (abs(p.x - x) == 1)):
             return True
     return False
