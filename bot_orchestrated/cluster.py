@@ -123,7 +123,8 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     for pos in can_act_units_on_resource:
         adjacent_development_positions = get_adjacent_development_positions(cluster, pos)
         if len(adjacent_development_positions) > 0:
-            positions_options.append([pos, [p for p in adjacent_development_positions if p not in cannot_act_units_on_resource and p not in blocked_empty_tiles]])
+            positions_options.append([pos, [p for p in adjacent_development_positions if
+                                            p not in cannot_act_units_on_resource and p not in blocked_empty_tiles]])
         else:
             # had no adjacent development position
             blocked_units_on_resource.append(pos)
@@ -136,14 +137,13 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # take a step towards empty where no adjacent empty
 
-
-
     # step out of cities into mining positions
     positions_options = []
     for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.my_city_tile is not None and len(cell_info.my_units) > 0:
             adjacent_mining_positions = get_adjacent_mining_positions(cluster, cell_pos)
-            free_adj_mining_positions = [p for p in adjacent_mining_positions if p not in blocked_units_on_resource and p not in cannot_act_units_on_resource and p not in blocked_empty_tiles]
+            free_adj_mining_positions = [p for p in adjacent_mining_positions if
+                                         p not in blocked_units_on_resource and p not in cannot_act_units_on_resource and p not in blocked_empty_tiles]
             if len(free_adj_mining_positions) > 0:
                 positions_options.append([cell_pos, free_adj_mining_positions])
     moves_solutions = solve_churn(positions_options)
@@ -165,7 +165,45 @@ def get_move_actions(moves_solutions, cluster):
                 actions.append(unit.move(direction))
     return actions, blocked_positions
 
-def solve_churn_with_score(positions_options, positions_scores):
+
+def solve_churn_with_score(positions_options: [], positions_scores: []):
+    move_solutions = dict()
+    high_score = -math.inf
+    for position, options in positions_options:
+        for option in options:
+            positions_options_reduction = get_position_options_reduction(positions_options, position, option)
+            if len(positions_options_reduction) > 0:
+                move_solutions_reduction, score = solve_churn_with_score(positions_options_reduction.items(),
+                                                                         positions_scores)
+                pos_opt_score = score + positions_scores[option]
+                if pos_opt_score > high_score:
+                    high_score = pos_opt_score
+                    move_solutions = move_solutions_reduction
+                    if position in move_solutions:
+                        move_solutions[position].append(option)
+                    else:
+                        move_solutions[position] = option
+            else:
+                high_score = positions_scores[option]
+                if position in move_solutions:
+                    move_solutions[position].append(option)
+                else:
+                    move_solutions[position] = option
+
+    return move_solutions, high_score
+
+
+def get_position_options_reduction(positions_options, pos_to_remove, opt_to_remove):
+    positions_options_reduction = dict()
+    for position, options in positions_options:
+        if position == pos_to_remove:
+            for option in options:
+                if option != opt_to_remove:
+                    if position in positions_options_reduction:
+                        positions_options_reduction[position].append(option)
+                    else:
+                        positions_options_reduction[position] = [option]
+    return positions_options_reduction
 
 
 def solve_churn(positions_options):
