@@ -136,6 +136,8 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # take a step towards empty where no adjacent empty
 
+
+
     # step out of cities into mining positions
     positions_options = []
     for cell_pos, cell_info in cluster.cell_infos.items():
@@ -162,6 +164,8 @@ def get_move_actions(moves_solutions, cluster):
                 direction = extensions.get_directions_to_target(pos, target)
                 actions.append(unit.move(direction))
     return actions, blocked_positions
+
+def solve_churn_with_score(positions_options, positions_scores):
 
 
 def solve_churn(positions_options):
