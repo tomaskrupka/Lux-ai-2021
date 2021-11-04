@@ -153,18 +153,15 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
                                          p not in units_on_resource and p not in cannot_act_units_on_resource and p not in blocked_empty_tiles]
             if len(free_adj_mining_positions) > 0:
                 positions_options.append([cell_pos, free_adj_mining_positions])
-    moves_solutions = solve_churn(positions_options)
-    moves, blocked_positions = get_move_actions(moves_solutions, cluster)
     positions_scores = dict()
     for position, options in positions_options:
         for option in options:
             positions_scores[option] = 1
-    moves_solutions_scores = solve_churn_with_score(positions_options, positions_scores)
-
-    moves, blocked_positions = get_move_actions(moves_solutions, cluster)
+    moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
+    moves, blocked_positions = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
     actions += moves
-
     return actions, remaining_units_allowance
+
 
 
 def develop_cluster_with_score(cluster: Cluster, cluster_development_settings: ClusterDevelopmentSettings):
