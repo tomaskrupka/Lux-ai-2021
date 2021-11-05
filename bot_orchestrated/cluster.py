@@ -157,13 +157,14 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     # take a step somewhere else where step out was unsuccessful
     empty_development_positions = []
     for position in cluster.development_positions:
-        is_position_free = True
-        for move, solutions in moves_solutions.items():
-            if position in solutions:
-                is_position_free=False
-                continue
-        if is_position_free:
-            empty_development_positions.append(position)
+        if position not in blocked_empty_tiles:
+            is_position_free = True
+            for move, solutions in moves_solutions.items():
+                if position in solutions:
+                    is_position_free = False
+                    continue
+            if is_position_free:
+                empty_development_positions.append(position)
 
     positions_options = []
     for position in units_on_resource:
@@ -182,7 +183,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
             dist = position.distance_to(target)
             if dist < min_dist_to_empty:
                 min_dist_to_empty = dist
-        positions_scores[target] = 100-min_dist_to_empty
+        positions_scores[target] = 100 - min_dist_to_empty - 10*(cluster.cell_infos[target].my_city_tile is not None)
 
     moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
     # moves_solutions = []
@@ -210,14 +211,12 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     positions_scores = dict()
     for position, options in positions_options:
         for option in options:
-            positions_scores[option] = 1
+            positions_scores[option] = cluster.cell_infos[option].mining_potential['WOOD']
     moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
     moves, source_to_list = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
 
-
     actions += moves
     return actions, remaining_units_allowance
-
 
 
 def develop_cluster_with_score(cluster: Cluster, cluster_development_settings: ClusterDevelopmentSettings):
