@@ -18,6 +18,7 @@ else:
 DIRECTIONS = Constants.DIRECTIONS
 game_state = None
 
+
 def agent(observation, configuration):
     global game_state
 
@@ -50,8 +51,11 @@ def agent(observation, configuration):
     remaining_units_allowance = len(my_city_tiles) - my_units_count
     for c in clusters:
         actions = actions + cluster.develop_cluster(c, cluster.ClusterDevelopmentSettings(
-            units_build_allowance=remaining_units_allowance))[0]
-
+            units_build_allowance=remaining_units_allowance,
+            units_export_positions=[],
+            units_export_count=0,
+            upcoming_cycles=[],
+            research_level=0))[0]
 
     # you can add debug annotations using the functions in the annotate object
     # actions.append(annotate.circle(0, 0))
