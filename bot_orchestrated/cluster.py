@@ -222,8 +222,8 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
             units_on_resource.append(towards)
 
     # push out units for export
-    push_out_units = []
-    push_out_positions = []
+    push_out_units = []  # units on push out positions
+    push_out_positions = []  # positions to push from to export positions
     for cell_pos, cell_info in cluster.cell_infos.items():
         adjacent_positions_any = extensions.get_adjacent_positions(cell_pos, cluster_development_settings.width)
         adjacent_positions_cluster = get_adjacent_positions_within_cluster(cell_pos, cluster)
@@ -233,40 +233,61 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
         is_push_out_position = is_next_to_city and is_next_to_export_position
         if is_push_out_position:
             push_out_positions.append(cell_pos)
-            if cell_info.my_units:
-                has_no_cargo = cell_info.my_units[0].get_cargo_space_left() == 0
-                if has_no_cargo:
-                    push_out_units.append(cell_pos)
-                    if cell_info.my_city_tile:
-                        print('error. push out unit in a city.')
+            if cell_info.my_units and cell_info.my_units[0].get_cargo_space_left() == 100:
+                push_out_units.append(cell_pos)
+                if cell_info.my_city_tile:
+                    print('error. push out unit in a city.')
 
+    # For each export pos try to export from any push-out position
     push_out_units_remaining = min(units_surplus + 1, cluster_development_settings.units_export_count)
+    satisfied_export_positions = set()
     for export_pos in cluster_development_settings.units_export_positions:
         if push_out_units_remaining <= 0:
             break
         for unit_pos in push_out_units:
             if unit_pos.is_adjacent(export_pos):
                 direction = extensions.get_directions_to_target(unit_pos, export_pos)
-                actions.append(cluster.cell_infos[unit_pos].my_units[0].move(direction))
+                if cluster.cell_infos[unit_pos].my_units[0].can_act():
+                    actions.append(cluster.cell_infos[unit_pos].my_units[0].move(direction))
+                    blocked_empty_tiles.remove(unit_pos)
+                # Treat as pushed even if could not act. Otherwise another unit would be pushed out of city to fulfill this.
                 push_out_units_remaining -= 1
-
-    # step out of cities into push out positions
-    for push_pos in push_out_positions:
-        adjacent_positions = get_adjacent_positions_within_cluster(push_pos, cluster)
-        unit_pushed = False
-        for adj_pos in adjacent_positions:
-            if cluster.cell_infos[adj_pos].my_city_tile and cluster.cell_infos[adj_pos].my_units:
-                unit = cluster.cell_infos[adj_pos].my_units[0]
-                direction = extensions.get_directions_to_target(adj_pos, push_pos)
-                actions.append(unit.move(direction))
-                unit_pushed = True
+                push_out_units.remove(unit_pos)
+                satisfied_export_positions.add(export_pos)
                 break
-        if unit_pushed:
-            push_out_units_remaining -= 1
+
+    # If units remain to be exported, generate moves from cities towards push-out positions next to unsatisfied exports.
+    pushed_out_units = []
+    city_push_outs = dict()
+    for export_pos in cluster_development_settings.units_export_positions:
         if push_out_units_remaining <= 0:
             break
+        if export_pos in satisfied_export_positions:
+            continue
+        for push_pos in push_out_positions:
+            adjacent_positions = get_adjacent_positions_within_cluster(push_pos, cluster)
+            adjacent_positions_any = extensions.get_adjacent_positions(push_pos, cluster_development_settings.width)
+            if export_pos not in adjacent_positions_any:
+                continue
+            unit_pushed = False
+            for adj_pos in adjacent_positions:
+                if cluster.cell_infos[adj_pos].my_city_tile and cluster.cell_infos[adj_pos].my_units:
+                    for unit in cluster.cell_infos[adj_pos].my_units:
+                        if unit not in pushed_out_units and unit.can_act():
+                            push_out_units_remaining -= 1
+                            pushed_out_units.append(unit)
+                            unit_pushed = True
+                            if adj_pos in city_push_outs:
+                                city_push_outs[adj_pos].append(push_pos)
+                            else:
+                                city_push_outs[adj_pos] = [push_pos]
+                            break
+                    if unit_pushed:
+                        break
+            if unit_pushed:
+                break
 
-    # step out of cities into mining positions
+    # step out of cities into mining and push-out positions
     positions_options = []
     for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.my_city_tile and cell_info.my_units:
@@ -278,11 +299,19 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
                                          p not in cannot_act_units and
                                          p not in blocked_empty_tiles]
             if len(free_adj_mining_positions) > 0:
+                if cell_pos in city_push_outs:
+                    free_adj_mining_positions += city_push_outs[cell_pos]
                 positions_options.append([cell_pos, free_adj_mining_positions])
+            else:
+                if cell_pos in city_push_outs:
+                    positions_options.append([cell_pos, city_push_outs[cell_pos]])
     positions_scores = dict()
     for position, options in positions_options:
         for option in options:
             positions_scores[option] = cluster.cell_infos[option].mining_potential['WOOD']
+    for city, push_outs in city_push_outs.items():
+        for push_out in push_outs:
+            positions_scores[push_out] = 1000
     moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
     moves, source_to_list = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
 
