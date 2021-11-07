@@ -110,9 +110,8 @@ class Cluster:
 def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevelopmentSettings):
     actions = []
     remaining_new_units_allowance = cluster_development_settings.units_build_allowance
-
+    researched = 0
     units_needed, has_units = get_units_needed(cluster)
-
     units_surplus = has_units - units_needed - cluster_development_settings.units_export_count
     units_surplus_balance = units_surplus
 
@@ -124,8 +123,9 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
                 actions.append(city_cell.my_city_tile.build_worker())
                 remaining_new_units_allowance -= 1
                 units_surplus_balance += 1
-            else:
+            elif cluster_development_settings.research_level + researched < 200:
                 actions.append(city_cell.my_city_tile.research())
+                researched += 1
 
     cannot_act_units = []
     for cell_pos, cell_info in cluster.cell_infos.items():
@@ -252,7 +252,8 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
                 satisfied_export_positions.add(export_pos)
                 break
 
-    # If units remain to be exported, generate moves from cities towards push-out positions next to unsatisfied exports.
+    # If we need to export more units,
+    # generate moves from cities towards push-out positions next to unsatisfied exports.
     pushed_out_units = []
     city_push_outs = dict()
     for export_pos in cluster_development_settings.units_export_positions:
@@ -313,7 +314,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     actions += moves
 
-    actions_allowance = [actions, remaining_new_units_allowance]
+    actions_allowance = [actions, remaining_new_units_allowance, researched]
     return actions_allowance
 
 

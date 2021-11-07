@@ -75,6 +75,7 @@ def agent(observation, configuration):
                 # TODO: free unit has nowhere to go.
 
     # Develop clusters. Export units for empty cities not served by free units
+    researched = 0
     developing_clusters = [c for c in clusters.values() if c.is_me_present]
     for developing_cluster in developing_clusters:
         export_positions = []
@@ -97,18 +98,18 @@ def agent(observation, configuration):
             free_clusters.remove(taken_free_cluster)
             export_positions = [ep[0] for ep in best_export_positions]
             export_units_count = 1
-        actions_allowance = cluster.develop_cluster(developing_cluster, cluster.ClusterDevelopmentSettings(
+        development_result = cluster.develop_cluster(developing_cluster, cluster.ClusterDevelopmentSettings(
             units_build_allowance=remaining_units_allowance,
             units_export_positions=export_positions,
             units_export_count=export_units_count,
             upcoming_cycles=[],
-            research_level=0,
+            research_level=me.research_points+researched,
             width=game_state.map_width))
-        if 0 >= remaining_units_allowance != actions_allowance[1]:
+        if 0 >= remaining_units_allowance != development_result[1]:
             print('fixme: units allowance changed when building was not permitted.')
-        remaining_units_allowance = actions_allowance[1]
-        actions += actions_allowance[0]
-
+        remaining_units_allowance = development_result[1]
+        actions += development_result[0]
+        researched += development_result[2]
     # you can add debug annotations using the functions in the annotate object
     # actions.append(annotate.circle(0, 0))
 
