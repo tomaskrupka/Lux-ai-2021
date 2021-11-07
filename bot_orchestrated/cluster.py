@@ -37,24 +37,30 @@ class ClusterDevelopmentSettings:
                  units_export_positions: list,
                  units_export_count: int,
                  upcoming_cycles: list,
-                 research_level: int):
+                 research_level: int,
+                 width: int):
         self.units_build_allowance = units_build_allowance
         self.units_export_positions = units_export_positions
         self.units_export_count = units_export_count
         self.upcoming_cycles = upcoming_cycles
         self.research_level = research_level
+        self.width = width
 
 
 class Cluster:
 
-    def __init__(self, non_empty_coordinates, game_state: Game, my_city_tiles, opponent_city_tiles, my_units,
+    def __init__(self, cluster_id, non_empty_coordinates, game_state: Game, my_city_tiles, opponent_city_tiles,
+                 my_units,
                  opponent_units):
+        self.cluster_id = cluster_id
         self.cell_infos = dict()
         self.resource_positions = set()
         adjacent_positions = extensions.get_adjacent_positions_cluster(non_empty_coordinates, game_state.map_width)
 
         all_cluster_coordinates = adjacent_positions.union(non_empty_coordinates)
         self.development_positions = [pos for pos in all_cluster_coordinates if pos not in non_empty_coordinates]
+        self.is_me_present = False
+        self.is_opponent_present = False
         for p in all_cluster_coordinates:
             cell_info = game_state.map.get_cell_by_pos(p)
             my_city_tile = my_city_tiles[p][1] if p in my_city_tiles else None
@@ -74,6 +80,12 @@ class Cluster:
                 opponent_units=opponent_units[p] if p in opponent_units else []
             )
             self.cell_infos[p] = cell_info
+            if cell_info.my_city_tile or cell_info.my_units:
+                self.is_me_present = True
+            if cell_info.opponent_city_tile or cell_info.opponent_units:
+                self.is_opponent_present = True
+            self.my_city_tiles = [p for p in self.cell_infos if self.cell_infos[p].my_city_tile]
+            self.opponent_city_tiles = [p for p in self.cell_infos if self.cell_infos[p].opponent_city_tile]
 
         for cell_pos in self.cell_infos:
             resource_amounts = dict(WOOD=0, COAL=0, URANIUM=0)
@@ -185,10 +197,10 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     positions_options = []
     for position in units_on_resource:
         options = []
-        for adjacent_position in get_adjacent_positions_within_cluster(position, cluster):
-            cell_info = cluster.cell_infos[adjacent_position]
-            if not cell_info.opponent_city_tile and adjacent_position not in cannot_act_units and adjacent_position not in blocked_empty_tiles:
-                options.append(adjacent_position)
+        for adj_pos in get_adjacent_positions_within_cluster(position, cluster):
+            cell_info = cluster.cell_infos[adj_pos]
+            if not cell_info.opponent_city_tile and adj_pos not in cannot_act_units and adj_pos not in blocked_empty_tiles:
+                options.append(adj_pos)
         if len(options) > 0:
             positions_options.append([position, options])
 
@@ -211,16 +223,22 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # push out units for export
     push_out_units = []
+    push_out_positions = []
     for cell_pos, cell_info in cluster.cell_infos.items():
-        if cell_info.my_units:
-            adjacent_positions = get_adjacent_positions_within_cluster(cell_pos, cluster)
-            is_next_to_city = any(pos for pos in adjacent_positions if cluster.cell_infos[pos].my_city_tile)
-            is_next_to_export_position = any(pos for pos in adjacent_positions if pos in cluster_development_settings.units_export_positions)
-            has_no_cargo = cell_info.my_units[0].get_cargo_space_left() == 0
-            if is_next_to_city and is_next_to_export_position and has_no_cargo:
-                push_out_units.append(cell_pos)
-                if cell_info.my_city_tile:
-                    print('error. push out unit in a city.')
+        adjacent_positions_any = extensions.get_adjacent_positions(cell_pos, cluster_development_settings.width)
+        adjacent_positions_cluster = get_adjacent_positions_within_cluster(cell_pos, cluster)
+        is_next_to_city = any(pos for pos in adjacent_positions_cluster if cluster.cell_infos[pos].my_city_tile)
+        is_next_to_export_position = any(
+            pos for pos in adjacent_positions_any if pos in cluster_development_settings.units_export_positions)
+        is_push_out_position = is_next_to_city and is_next_to_export_position
+        if is_push_out_position:
+            push_out_positions.append(cell_pos)
+            if cell_info.my_units:
+                has_no_cargo = cell_info.my_units[0].get_cargo_space_left() == 0
+                if has_no_cargo:
+                    push_out_units.append(cell_pos)
+                    if cell_info.my_city_tile:
+                        print('error. push out unit in a city.')
 
     push_out_units_remaining = min(units_surplus + 1, cluster_development_settings.units_export_count)
     for export_pos in cluster_development_settings.units_export_positions:
@@ -231,6 +249,22 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
                 direction = extensions.get_directions_to_target(unit_pos, export_pos)
                 actions.append(cluster.cell_infos[unit_pos].my_units[0].move(direction))
                 push_out_units_remaining -= 1
+
+    # step out of cities into push out positions
+    for push_pos in push_out_positions:
+        adjacent_positions = get_adjacent_positions_within_cluster(push_pos, cluster)
+        unit_pushed = False
+        for adj_pos in adjacent_positions:
+            if cluster.cell_infos[adj_pos].my_city_tile and cluster.cell_infos[adj_pos].my_units:
+                unit = cluster.cell_infos[adj_pos].my_units[0]
+                direction = extensions.get_directions_to_target(adj_pos, push_pos)
+                actions.append(unit.move(direction))
+                unit_pushed = True
+                break
+        if unit_pushed:
+            push_out_units_remaining -= 1
+        if push_out_units_remaining <= 0:
+            break
 
     # step out of cities into mining positions
     positions_options = []
