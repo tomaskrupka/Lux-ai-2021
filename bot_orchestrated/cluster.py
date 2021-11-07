@@ -111,10 +111,6 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     actions = []
     remaining_new_units_allowance = cluster_development_settings.units_build_allowance
 
-    units_in_cities = dict()
-    for cell_pos, cell_info in cluster.cell_infos.items():
-        if cell_info.my_city_tile and cell_info.my_units:
-            units_in_cities[cell_pos] = len(cell_info.my_units)
     units_needed, has_units = get_units_needed(cluster)
 
     units_surplus = has_units - units_needed - cluster_development_settings.units_export_count
@@ -316,21 +312,9 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     moves, source_to_list = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
 
     actions += moves
-    return actions, remaining_new_units_allowance
 
-
-def develop_cluster_with_score(cluster: Cluster, cluster_development_settings: ClusterDevelopmentSettings):
-    actions = []
-    remaining_units_allowance = cluster_development_settings.units_build_allowance
-    city_cell: CellInfo
-    for city_cell in [cell_info for cell_coords, cell_info in cluster.cell_infos.items() if
-                      cell_info.my_city_tile is not None]:
-        if city_cell.my_city_tile.can_act():
-            if remaining_units_allowance > 0:
-                actions.append(city_cell.my_city_tile.build_worker())
-                remaining_units_allowance -= 1
-            else:
-                actions.append(city_cell.my_city_tile.research())
+    actions_allowance = [actions, remaining_new_units_allowance]
+    return actions_allowance
 
 
 def get_move_actions_with_blocks(positions_options, moves_solutions, cluster):

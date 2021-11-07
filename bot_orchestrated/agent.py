@@ -46,7 +46,7 @@ def agent(observation, configuration):
     my_units = recon.get_player_unit_tiles(me)
     opponent_units = recon.get_player_unit_tiles(opponent)
     clusters = recon.detect_clusters(game_state, me, my_city_tiles, opponent_city_tiles, my_units, opponent_units)
-    my_units_count = 0
+    my_units_in_clusters_count = 0
 
     # Recon free units
     free_units = set(my_units.keys())
@@ -54,10 +54,10 @@ def agent(observation, configuration):
     for cluster_id, c in clusters.items():
         for pos, info in c.cell_infos.items():
             units_count = len(info.my_units)
-            my_units_count += units_count
+            my_units_in_clusters_count += units_count
             if units_count > 0:
                 free_units.remove(pos)
-    remaining_units_allowance = len(my_city_tiles) - my_units_count
+    remaining_units_allowance = len(my_city_tiles) - my_units_in_clusters_count - len(free_units)
     for cluster_id, c in clusters.items():
         if not c.is_me_present:
             free_clusters.append(c)
@@ -73,8 +73,8 @@ def agent(observation, configuration):
             else:
                 print('todo: free unit has nowhere to go')
                 # TODO: free unit has nowhere to go.
-    needed_units = len(free_clusters)
-    # export units for empty cities not served by free units
+
+    # Develop clusters. Export units for empty cities not served by free units
     developing_clusters = [c for c in clusters.values() if c.is_me_present]
     for developing_cluster in developing_clusters:
         export_positions = []
@@ -97,13 +97,17 @@ def agent(observation, configuration):
             free_clusters.remove(taken_free_cluster)
             export_positions = [ep[0] for ep in best_export_positions]
             export_units_count = 1
-        actions = actions + cluster.develop_cluster(developing_cluster, cluster.ClusterDevelopmentSettings(
+        actions_allowance = cluster.develop_cluster(developing_cluster, cluster.ClusterDevelopmentSettings(
             units_build_allowance=remaining_units_allowance,
             units_export_positions=export_positions,
             units_export_count=export_units_count,
             upcoming_cycles=[],
             research_level=0,
-            width=game_state.map_width))[0]
+            width=game_state.map_width))
+        if 0 >= remaining_units_allowance != actions_allowance[1]:
+            print('fixme: units allowance changed when building was not permitted.')
+        remaining_units_allowance = actions_allowance[1]
+        actions += actions_allowance[0]
 
     # you can add debug annotations using the functions in the annotate object
     # actions.append(annotate.circle(0, 0))
