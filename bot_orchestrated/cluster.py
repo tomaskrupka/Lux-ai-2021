@@ -154,11 +154,21 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
         if cell_info.resource and cell_info.my_units:
             if cell_info.my_units[0].can_act():
                 can_act_units_on_resource.append(cell_pos)
+    mined_resource = 'WOOD'
+    if cluster_development_settings.research_level >= 50:
+        mined_resource = 'COAL'
+    if cluster_development_settings.research_level >= 200:
+        mined_resource = 'URANIUM'
     for pos in can_act_units_on_resource:
+        # if pos == Position(6, 14):
+        #     print('i am on 6 14')
         adjacent_development_positions = get_adjacent_development_positions(cluster, pos)
+        adjacent_mining_positions = get_adjacent_mining_positions(cluster, pos, mined_resource)
         if len(adjacent_development_positions) > 0:
             positions_options.append([pos, [p for p in adjacent_development_positions if
-                                            p not in cannot_act_units and p not in blocked_empty_tiles]])
+                                            p not in cannot_act_units and
+                                            p not in blocked_empty_tiles and
+                                            p in adjacent_mining_positions]])
         else:
             # had no adjacent development position
             units_on_resource.append(pos)
@@ -178,7 +188,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
         elif cluster.cell_infos[towards].is_empty:
             blocked_empty_tiles.append(towards)
 
-    # take a step from resource to some other resource if step out was unsuccessful
+    # figure out empty development positions, account for blocked empty tiles
     empty_development_positions = []
     for position in cluster.development_positions:
         if position not in blocked_empty_tiles:
@@ -190,32 +200,40 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
             if is_position_free:
                 empty_development_positions.append(position)
 
-    positions_options = []
-    for position in units_on_resource:
-        options = []
-        for adj_pos in get_adjacent_positions_within_cluster(position, cluster):
-            cell_info = cluster.cell_infos[adj_pos]
-            if not cell_info.opponent_city_tile and adj_pos not in cannot_act_units and adj_pos not in blocked_empty_tiles:
-                options.append(adj_pos)
-        if len(options) > 0:
-            positions_options.append([position, options])
+    # take a step from resource to some other resource if step out was unsuccessful
+    if units_on_resource:
+        moves, units_on_resource = step_within_resources(units_on_resource, cluster, empty_development_positions,
+                                                         cannot_act_units, mined_resource)
+        actions += moves
 
-    positions_scores = dict()
-    for target in cluster.cell_infos:
-        min_dist_to_empty = math.inf
-        for position in empty_development_positions:
-            dist = position.distance_to(target)
-            if dist < min_dist_to_empty:
-                min_dist_to_empty = dist
-        positions_scores[target] = 100 - min_dist_to_empty - 10 * (cluster.cell_infos[target].my_city_tile is not None)
-
-    moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
-    moves, source_to_list = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
-    actions += moves
-    for source, towards in source_to_list:
-        units_on_resource.remove(source)
-        if towards in cluster.resource_positions:
-            units_on_resource.append(towards)
+    # take a step from resource to some other resource if step out was unsuccessful
+    # positions_options = []
+    # for position in units_on_resource:
+    #     options = []
+    #     for adj_pos in get_adjacent_positions_within_cluster(position, cluster):
+    #         cell_info = cluster.cell_infos[adj_pos]
+    #         if cell_info.resource and not cell_info.opponent_city_tile and adj_pos not in cannot_act_units and adj_pos not in blocked_empty_tiles:
+    #             options.append(adj_pos)
+    #     if len(options) > 0:
+    #         positions_options.append([position, options])
+    #
+    # positions_scores = dict()
+    # for target in cluster.cell_infos:
+    #     min_dist_to_empty = math.inf
+    #     for position in empty_development_positions:
+    #         if can_mine_on_position(cluster, position, mined_resource):
+    #             dist = position.distance_to(target)
+    #             if dist < min_dist_to_empty:
+    #                 min_dist_to_empty = dist
+    #     positions_scores[target] = 100 - min_dist_to_empty - 10 * (cluster.cell_infos[target].my_city_tile is not None)
+    #
+    # moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
+    # moves, source_to_list = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
+    # actions += moves
+    # for source, towards in source_to_list:
+    #     units_on_resource.remove(source)
+    #     if towards in cluster.resource_positions:
+    #         units_on_resource.append(towards)
 
     # push out units for export
     push_out_units = []  # units on push out positions
@@ -288,7 +306,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     positions_options = []
     for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.my_city_tile and cell_info.my_units:
-            adjacent_mining_positions = [p for p in get_adjacent_mining_positions(cluster, cell_pos) if
+            adjacent_mining_positions = [p for p in get_adjacent_mining_positions(cluster, cell_pos, mined_resource) if
                                          not cluster.cell_infos[p].my_city_tile and
                                          not cluster.cell_infos[p].opponent_city_tile]
             free_adj_mining_positions = [p for p in adjacent_mining_positions if
@@ -318,27 +336,48 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     return actions_allowance
 
 
-def get_move_actions_with_blocks(positions_options, moves_solutions, cluster):
-    positions_units = dict()
-    for position, options in positions_options:
-        if position in positions_units:
-            used_units = len(positions_units[position])
-            positions_units[position].append(cluster.cell_infos[position].my_units[used_units])
-        else:
-            positions_units[position] = [cluster.cell_infos[position].my_units[0]]
-    blocked_positions = []
+# Steps within resources towards empty development positions.
+def step_within_resources(units_on_resource, cluster: Cluster, empty_development_positions, blocked_tiles,
+                          mined_resource):
     actions = []
-    for position in positions_units:
-        if position in moves_solutions:
-            for move, unit in zip(moves_solutions[position], positions_units[position]):
-                direction = extensions.get_directions_to_target(position, move)
-                actions.append(unit.move(direction))
-                blocked_positions.append((position, move))
-            if len(moves_solutions[position]) < len(positions_units[position]):
-                blocked_positions.append((position, position))
-        else:
-            blocked_positions.append((position, position))
-    return actions, blocked_positions
+    new_moves = []  # cannot append new moves directly to units_on_resources as both rounds use that list
+    # First try to move the units that are fully loaded. These can build next to unlocked resources.
+    # Then move the rest.
+    for cycle_loaded in [True, False]:
+        positions_options = []
+        for position in units_on_resource:
+            is_loaded_unit = cluster.cell_infos[position].my_units[0].get_cargo_space_left() == 0
+            if cycle_loaded != is_loaded_unit:
+                continue
+            options = []
+            for adj_pos in get_adjacent_positions_within_cluster(position, cluster):
+                cell_info = cluster.cell_infos[adj_pos]
+                if cell_info.resource and not cell_info.opponent_city_tile and adj_pos not in blocked_tiles:
+                    options.append(adj_pos)
+            if len(options) > 0:
+                positions_options.append([position, options])
+
+        positions_scores = dict()
+        for target in cluster.cell_infos:
+            min_dist_to_empty = math.inf
+            for position in empty_development_positions:
+                # Add position next to unlocked resources for loaded units
+                if can_mine_on_position(cluster, position, mined_resource) or cycle_loaded:
+                    dist = position.distance_to(target)
+                    if dist < min_dist_to_empty:
+                        min_dist_to_empty = dist
+            positions_scores[target] = 100 - min_dist_to_empty - 10 * (
+                    cluster.cell_infos[target].my_city_tile is not None)
+
+        moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
+        moves, source_to_list = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
+        actions += moves
+        for source, towards in source_to_list:
+            units_on_resource.remove(source)
+            if towards in cluster.resource_positions:
+                new_moves.append(towards)
+    units_on_resource += new_moves
+    return actions, units_on_resource
 
 
 def solve_churn_with_score(positions_options: [], positions_scores: []):
@@ -355,8 +394,7 @@ def solve_churn_with_score(positions_options: [], positions_scores: []):
             positions_options_reduction = get_position_options_reduction(valid_positions_options, position,
                                                                          option).items()
             if len(positions_options_reduction) > 0:
-                move_solutions_reduction, score = solve_churn_with_score(positions_options_reduction,
-                                                                         positions_scores)
+                move_solutions_reduction, score = solve_churn_with_score(positions_options_reduction, positions_scores)
                 pos_opt_score = score + positions_scores[option]
                 if pos_opt_score > high_score:
                     high_score = pos_opt_score
@@ -385,6 +423,29 @@ def get_position_options_reduction(positions_options, pos_to_remove, opt_to_remo
                     else:
                         positions_options_reduction[position] = [option]
     return positions_options_reduction
+
+
+def get_move_actions_with_blocks(positions_options, moves_solutions, cluster):
+    positions_units = dict()
+    for position, options in positions_options:
+        if position in positions_units:
+            used_units = len(positions_units[position])
+            positions_units[position].append(cluster.cell_infos[position].my_units[used_units])
+        else:
+            positions_units[position] = [cluster.cell_infos[position].my_units[0]]
+    blocked_positions = []
+    actions = []
+    for position in positions_units:
+        if position in moves_solutions:
+            for move, unit in zip(moves_solutions[position], positions_units[position]):
+                direction = extensions.get_directions_to_target(position, move)
+                actions.append(unit.move(direction))
+                blocked_positions.append((position, move))
+            if len(moves_solutions[position]) < len(positions_units[position]):
+                blocked_positions.append((position, position))
+        else:
+            blocked_positions.append((position, position))
+    return actions, blocked_positions
 
 
 def solve_churn(positions_options):
@@ -442,15 +503,20 @@ def get_adjacent_development_positions(cluster: Cluster, p: Position):
     return adjacent_development_positions
 
 
-# TODO: account for research level.
-def get_adjacent_mining_positions(cluster: Cluster, p: Position):
+def get_adjacent_mining_positions(cluster: Cluster, p: Position, mined_resource):
     adjacent_mining_positions = []
-    for cell_pos, cell_info in cluster.cell_infos.items():
-        if not p.is_adjacent(cell_pos):
-            continue
-        if cell_info.mining_potential['WOOD'] > 0:
+    for cell_pos in cluster.cell_infos:
+        if p.is_adjacent(cell_pos) and (can_mine_on_position(cluster, cell_pos, mined_resource)):
             adjacent_mining_positions.append(cell_pos)
     return adjacent_mining_positions
+
+
+def can_mine_on_position(cluster: Cluster, position: Position, mined_resource):
+    cell_info = cluster.cell_infos[position]
+    can_mine_here = cell_info.mining_potential['WOOD'] > 0 or \
+                    (cell_info.mining_potential['COAL'] > 0 and not mined_resource == 'WOOD') or \
+                    (cell_info.mining_potential['URANIUM'] > 0 and mined_resource == 'URANIUM')
+    return can_mine_here
 
 
 def get_closest_development_position(cluster: Cluster, xy):
