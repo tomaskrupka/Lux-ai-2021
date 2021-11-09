@@ -206,35 +206,6 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
                                                          cannot_act_units, mined_resource)
         actions += moves
 
-    # take a step from resource to some other resource if step out was unsuccessful
-    # positions_options = []
-    # for position in units_on_resource:
-    #     options = []
-    #     for adj_pos in get_adjacent_positions_within_cluster(position, cluster):
-    #         cell_info = cluster.cell_infos[adj_pos]
-    #         if cell_info.resource and not cell_info.opponent_city_tile and adj_pos not in cannot_act_units and adj_pos not in blocked_empty_tiles:
-    #             options.append(adj_pos)
-    #     if len(options) > 0:
-    #         positions_options.append([position, options])
-    #
-    # positions_scores = dict()
-    # for target in cluster.cell_infos:
-    #     min_dist_to_empty = math.inf
-    #     for position in empty_development_positions:
-    #         if can_mine_on_position(cluster, position, mined_resource):
-    #             dist = position.distance_to(target)
-    #             if dist < min_dist_to_empty:
-    #                 min_dist_to_empty = dist
-    #     positions_scores[target] = 100 - min_dist_to_empty - 10 * (cluster.cell_infos[target].my_city_tile is not None)
-    #
-    # moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
-    # moves, source_to_list = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
-    # actions += moves
-    # for source, towards in source_to_list:
-    #     units_on_resource.remove(source)
-    #     if towards in cluster.resource_positions:
-    #         units_on_resource.append(towards)
-
     # push out units for export
     push_out_units = []  # units on push out positions
     push_out_positions = []  # positions to push from to export positions
@@ -361,7 +332,11 @@ def step_within_resources(units_on_resource, cluster: Cluster, empty_development
         for target in cluster.cell_infos:
             min_dist_to_empty = math.inf
             for position in empty_development_positions:
-                # Add position next to unlocked resources for loaded units
+                # Hack: hide positions without resource from empty_development_positions to prevent trapping units
+                # inside U-shaped cities. Remove this and score using real distance to empty development position (dijkstra)
+                if sum(cluster.cell_infos[position].mining_potential.values()) == 0:
+                    continue
+                # Add position next to unlocked resources only for loaded units
                 if can_mine_on_position(cluster, position, mined_resource) or cycle_loaded:
                     dist = position.distance_to(target)
                     if dist < min_dist_to_empty:
