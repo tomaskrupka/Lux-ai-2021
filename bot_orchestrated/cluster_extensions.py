@@ -26,8 +26,8 @@ def get_mined_resource(research_level):
 
 def get_adjacent_development_positions(cluster: Cluster, p: Position):
     adjacent_development_positions = []
-    for q in cluster.development_positions:
-        if p.is_adjacent(q):
+    for q in cluster.perimeter:
+        if cluster.cell_infos[q].is_empty and p.is_adjacent(q):
             adjacent_development_positions.append(q)
     return adjacent_development_positions
 
@@ -71,3 +71,14 @@ def detect_push_out_units_positions(cluster, cluster_development_settings):
                     print('error. push out unit in a city.')
 
     return push_out_units, push_out_positions
+
+
+def get_cannot_act_units(cluster):
+    cannot_act_units = []
+    for cell_pos, cell_info in cluster.cell_infos.items():
+        if not cell_info.my_city_tile:
+            if cell_info.my_units:
+                if not cell_info.my_units[0].can_act():
+                    cannot_act_units.append(cell_pos)
+    return cannot_act_units
+

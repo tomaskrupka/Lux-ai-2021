@@ -57,10 +57,11 @@ class Cluster:
         self.cluster_id = cluster_id
         self.cell_infos = dict()
         self.resource_positions = set()
-        adjacent_positions = extensions.get_adjacent_positions_cluster(non_empty_coordinates, game_state.map_width)
+        all_adjacent_positions = extensions.get_adjacent_positions_cluster(non_empty_coordinates, game_state.map_width)
 
-        all_cluster_coordinates = adjacent_positions.union(non_empty_coordinates)
-        self.development_positions = [pos for pos in all_cluster_coordinates if pos not in non_empty_coordinates]
+        all_cluster_coordinates = all_adjacent_positions.union(non_empty_coordinates)
+        # positions adjacent to the core resources and my cities
+        self.perimeter = [pos for pos in all_cluster_coordinates if pos not in non_empty_coordinates]
         self.is_me_present = False
         self.is_opponent_present = False
         for p in all_cluster_coordinates:
@@ -81,6 +82,7 @@ class Cluster:
                 my_units=my_units[p] if p in my_units else [],
                 opponent_units=opponent_units[p] if p in opponent_units else []
             )
+
             self.cell_infos[p] = cell_info
             if cell_info.my_city_tile or cell_info.my_units:
                 self.is_me_present = True
@@ -88,7 +90,7 @@ class Cluster:
                 self.is_opponent_present = True
             self.my_city_tiles = [p for p in self.cell_infos if self.cell_infos[p].my_city_tile]
             self.opponent_city_tiles = [p for p in self.cell_infos if self.cell_infos[p].opponent_city_tile]
-
+        self.development_positions = [p for p in self.perimeter if self.cell_infos[p].is_empty]
         for cell_pos in self.cell_infos:
             resource_amounts = dict(WOOD=0, COAL=0, URANIUM=0)
             adjacent_positions = extensions.get_adjacent_positions(cell_pos, game_state.map_width)

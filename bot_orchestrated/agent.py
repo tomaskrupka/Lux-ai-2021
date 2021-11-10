@@ -103,14 +103,17 @@ def agent(observation, configuration):
             free_clusters.remove(taken_free_cluster)
             export_positions = [ep[0] for ep in best_export_positions]
             export_units_count = 1
-        development_result = develop_cluster.develop_cluster(developing_cluster, cluster.ClusterDevelopmentSettings(
-            turn=game_state.turn,
-            units_build_allowance=remaining_units_allowance,
-            units_export_positions=export_positions,
-            units_export_count=export_units_count,
-            upcoming_cycles=[],
-            research_level=me.research_points+researched,
-            width=game_state.map_width))
+        development_result = develop_cluster.develop_cluster(
+            developing_cluster,
+            cluster.ClusterDevelopmentSettings(
+                turn=game_state.turn,
+                units_build_allowance=remaining_units_allowance,
+                units_export_positions=export_positions,
+                units_export_count=export_units_count,
+                upcoming_cycles=[],
+                research_level=me.research_points+researched,
+                width=game_state.map_width),
+            game_state)
         if 0 >= remaining_units_allowance != development_result[1]:
             print('fixme: units allowance changed when building was not permitted.')
         remaining_units_allowance = development_result[1]
