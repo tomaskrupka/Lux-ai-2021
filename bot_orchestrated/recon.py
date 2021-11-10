@@ -25,7 +25,7 @@ def get_player_unit_tiles(player: Player):
     return player_worker_tiles
 
 
-def detect_clusters(game_state, player, my_city_tiles, opponent_city_tiles, my_units, opponent_units):
+def detect_clusters(game_state, my_city_tiles, opponent_city_tiles, my_units, opponent_units):
     clusters = dict()
     coordinates_lists = detect_clusters_coordinates(game_state, my_city_tiles)
     for cluster_id, coordinates_list in coordinates_lists.items():

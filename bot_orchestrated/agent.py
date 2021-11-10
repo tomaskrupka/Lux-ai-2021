@@ -8,6 +8,7 @@ if __package__ == "":
     import cluster
     import recon
     import extensions
+    import develop_cluster
 
 else:
     # for CLI tool
@@ -15,7 +16,7 @@ else:
     from .lux.game_map import Cell
     from .lux.constants import Constants
     from .lux import annotate
-    from . import cluster, extensions
+    from . import cluster, extensions, develop_cluster
     from . import recon
 
 DIRECTIONS = Constants.DIRECTIONS
@@ -33,6 +34,7 @@ def agent(observation, configuration):
         game_state.id = observation.player
     else:
         game_state._update(observation["updates"])
+        game_state.turn = observation["step"]
 
     actions = []
 
@@ -45,8 +47,11 @@ def agent(observation, configuration):
     opponent_city_tiles = recon.get_player_city_tiles(opponent)
     my_units = recon.get_player_unit_tiles(me)
     opponent_units = recon.get_player_unit_tiles(opponent)
-    clusters = recon.detect_clusters(game_state, me, my_city_tiles, opponent_city_tiles, my_units, opponent_units)
+    clusters = recon.detect_clusters(game_state, my_city_tiles, opponent_city_tiles, my_units, opponent_units)
     my_units_in_clusters_count = 0
+
+    if game_state.turn > 360:
+        print('turn overflow')
 
     # Recon free units
     free_units = set(my_units.keys())
@@ -98,7 +103,8 @@ def agent(observation, configuration):
             free_clusters.remove(taken_free_cluster)
             export_positions = [ep[0] for ep in best_export_positions]
             export_units_count = 1
-        development_result = cluster.develop_cluster(developing_cluster, cluster.ClusterDevelopmentSettings(
+        development_result = develop_cluster.develop_cluster(developing_cluster, cluster.ClusterDevelopmentSettings(
+            turn=game_state.turn,
             units_build_allowance=remaining_units_allowance,
             units_export_positions=export_positions,
             units_export_count=export_units_count,
