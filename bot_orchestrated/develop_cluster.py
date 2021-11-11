@@ -1,7 +1,7 @@
 import copy
 import math
 
-import develop_cluster_actions
+import develop_cluster_actions as dca
 import cluster_extensions
 from cluster import Cluster, ClusterDevelopmentSettings
 from lux.game import Game
@@ -13,50 +13,62 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     units_allowance: int  # How many units can other clusters build.
     units_surplus: int  # Units needed in this cluster - units_export_count.
     researched: int  # Prevent researching past 200 here and in other clusters.
-    cannot_act_units: list  # Units that need to cool down.
     blocked_positions = []  # Growing list of taken positions during development to prevent collisions.
+    cannot_act_units = []  # Growing list of used units that cannot act this turn.
 
-    cannot_act_units = cluster_extensions.get_cannot_act_units(cluster)
+    cannot_act_units = cluster_extensions.get_cannot_act_units(cluster)  # init with units with cooldown
     blocked_positions += cannot_act_units
+
+    cities_by_fuel = cluster_extensions.get_cities_fuel_balance(cluster, 10).values()
 
     # CITY TILE ACTIONS
 
-    a, units_allowance, units_surplus, researched = develop_cluster_actions.build_workers_or_research(
+    a, units_allowance, units_surplus, researched = dca.build_workers_or_research(
         cluster, cluster_development_settings)
     actions += a
+
+    # PULL UNITS BACK INTO CITIES
 
     # BUILD CITY TILES
     # TODO: exclude units coming to the city with resources.
 
-    a, b = develop_cluster_actions.build_city_tiles(cluster)
+    a, b = dca.build_city_tiles(cluster)
     actions += a
     blocked_positions += b
 
     # STEP OUT OF RESOURCES INTO ADJACENT EMPTY POSITIONS
 
-    forbidden_positions = [p for p, i in cluster.cell_infos.items() if i.my_units or p in blocked_positions]
+    forbidden_targets = [p for p, i in cluster.cell_infos.items() if i.my_units or p in blocked_positions]
 
-    a, b, unmoved_units_on_resource = develop_cluster_actions.step_out_of_resources_into_adjacent_empty(
-        cluster, cluster_development_settings, forbidden_positions)
+    a, b, c, unmoved_units_on_resource = dca.step_out_of_resources_into_adjacent_empty(
+        cluster, cluster_development_settings, forbidden_targets)
     actions += a
     blocked_positions += b
+    cannot_act_units += c
 
     # STEP WITHIN RESOURCES IF STEP OUT WAS UNSUCCESSFUL
 
     if unmoved_units_on_resource:
-        a, b, units_on_resource = develop_cluster_actions.step_within_resources(unmoved_units_on_resource, cluster,
-                                                                                cluster_development_settings,
-                                                                                blocked_positions)
+        a, b, units_on_resource = dca.step_within_resources(
+            unmoved_units_on_resource,
+            cluster,
+            cluster_development_settings,
+            blocked_positions)
         actions += a
         blocked_positions += b
-        blocked_positions += units_on_resource  # Todo step into city instead
+
+        # IF UNIT ON RESOURCE COULD NOT MOVE, PULL IT BACK TO CITY
+
+        a, b = dca.step_into_city(units_on_resource, cluster, cluster_development_settings, cities_by_fuel)
+        actions += a
+        blocked_positions += b
 
     # EXPORT UNITS FROM PUSH OUT POSITIONS
 
     push_out_units, push_out_positions = cluster_extensions.detect_push_out_units_positions(cluster,
                                                                                             cluster_development_settings)
 
-    a, b, push_out_units_remaining, satisfied_export_positions, p = develop_cluster_actions.push_out_units_for_export(
+    a, b, push_out_units_remaining, satisfied_export_positions, p = dca.push_out_units_for_export(
         cluster,
         cluster_development_settings,
         units_surplus,
@@ -68,14 +80,14 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # FIND MOVES FROM CITIES TO UNSATISFIED EXPORTS
 
-    city_push_outs = develop_cluster_actions.get_city_push_outs(cluster, cluster_development_settings,
-                                                                push_out_units_remaining, satisfied_export_positions,
-                                                                push_out_units, push_out_positions)
+    city_push_outs = dca.get_city_push_outs(cluster, cluster_development_settings,
+                                            push_out_units_remaining, satisfied_export_positions,
+                                            push_out_units, push_out_positions)
 
     # STEP OUT OF CITIES INTO MINING AND PUSH-OUT POSITIONS
 
-    a = develop_cluster_actions.step_out_of_cities(cluster, cluster_development_settings, city_push_outs,
-                                                   blocked_positions)
+    a = dca.step_out_of_cities(cluster, cluster_development_settings, city_push_outs,
+                               blocked_positions)
     actions += a
     actions_allowance = [actions, units_allowance, researched]
     return actions_allowance

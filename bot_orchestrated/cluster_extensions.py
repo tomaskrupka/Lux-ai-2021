@@ -82,3 +82,14 @@ def get_cannot_act_units(cluster):
                     cannot_act_units.append(cell_pos)
     return cannot_act_units
 
+
+def get_cities_fuel_balance(cluster: Cluster, nights):
+    cities_by_fuel = dict()
+    for pos, info in cluster.cell_infos.items():
+        if info.my_city:
+            city = info.my_city
+            if city.cityid not in cities_by_fuel:
+                cities_by_fuel[city.cityid] = (city.fuel - city.light_upkeep * nights, [pos])
+            else:
+                cities_by_fuel[city.cityid][1].append(pos)
+    return cities_by_fuel

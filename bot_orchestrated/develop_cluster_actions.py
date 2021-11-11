@@ -42,6 +42,7 @@ def step_out_of_resources_into_adjacent_empty(cluster, cluster_development_setti
     can_act_units_on_resource = []
     actions = []
     b = []
+    c = []
 
     for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.resource and cell_info.my_units:
@@ -74,53 +75,58 @@ def step_out_of_resources_into_adjacent_empty(cluster, cluster_development_setti
             unmoved_units_on_resource.append(towards)
         elif cluster.cell_infos[towards].resource:  # Step may have happened outside
             b.append(towards)
+            c.append(source)
 
-    return actions, b, unmoved_units_on_resource
+    return actions, b, c, unmoved_units_on_resource
 
 
 def step_within_resources(units_on_resource, cluster, cluster_development_settings, blocked_positions):
     mined_resource = cluster_extensions.get_mined_resource(cluster_development_settings.research_level)
     actions = []
     b = []
-    # First try to move the units that are fully loaded. These can build next to unlocked resources.
-    # Then move the rest.
-    for cycle_loaded in [True, False]:
-        positions_options = []
-        for position in units_on_resource:
-            is_loaded_unit = cluster.cell_infos[position].my_units[0].get_cargo_space_left() == 0
-            if cycle_loaded != is_loaded_unit:
-                continue
-            options = []
-            for adj_pos in cluster_extensions.get_adjacent_positions_within_cluster(position, cluster):
-                adj_cell_info = cluster.cell_infos[adj_pos]
-                if adj_cell_info.resource and adj_pos not in blocked_positions:
-                    options.append(adj_pos)
-            if len(options) > 0:
-                positions_options.append([position, options])
 
-        positions_scores = dict()
-        for target in cluster.cell_infos:
-            min_dist_to_empty = math.inf
-            for position in [p for p in cluster.development_positions]:
-                # Hack: hide positions without resource from empty_development_positions to prevent trapping units
-                # inside U-shaped cities. Remove this and score using real distance to empty development position (dijkstra)
-                if sum(cluster.cell_infos[position].mining_potential.values()) == 0:
+    # Hack: hide positions without resource from empty_development_positions to prevent trapping units
+    # inside U-shaped cities. Remove this and score using real distance to empty development position (dijkstra)
+    mineable_development_positions = [p for p in cluster.development_positions if
+                                      sum(cluster.cell_infos[p].mining_potential.values()) == 0]
+
+    if mineable_development_positions:
+
+        # First try to move the units that are fully loaded. These can build next to unlocked resources. Then move the rest.
+        for cycle_loaded in [True, False]:
+            positions_scores = dict()
+            for target in cluster.cell_infos:
+                min_dist_to_empty = math.inf
+                for position in mineable_development_positions:
+                    # Add position next to unlocked resources only for loaded units
+                    if cycle_loaded or cluster_extensions.can_mine_on_position(cluster, position, mined_resource):
+                        dist = position.distance_to(target)
+                        if dist < min_dist_to_empty:
+                            min_dist_to_empty = dist
+                positions_scores[target] = 100 - min_dist_to_empty - 10 * (
+                            cluster.cell_infos[target].my_city_tile is not None)
+
+            positions_options = []
+            for position in units_on_resource:
+                is_loaded_unit = cluster.cell_infos[position].my_units[0].get_cargo_space_left() == 0
+                if cycle_loaded != is_loaded_unit:
                     continue
-                # Add position next to unlocked resources only for loaded units
-                if cluster_extensions.can_mine_on_position(cluster, position, mined_resource) or cycle_loaded:
-                    dist = position.distance_to(target)
-                    if dist < min_dist_to_empty:
-                        min_dist_to_empty = dist
-            positions_scores[target] = 100 - min_dist_to_empty - 10 * (
-                    cluster.cell_infos[target].my_city_tile is not None)
+                options = []
+                for adj_pos in cluster_extensions.get_adjacent_positions_within_cluster(position, cluster):
+                    adj_cell_info = cluster.cell_infos[adj_pos]
+                    if adj_cell_info.resource and adj_pos not in blocked_positions:
+                        options.append(adj_pos)
+                if len(options) > 0:
+                    positions_options.append([position, options])
 
-        moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
-        moves, source_to_list = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
-        actions += moves
-        for source, towards in source_to_list:
-            if towards != source:
-                b.append(towards)
-                units_on_resource.remove(source)
+            moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
+            moves, source_to_list = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
+            actions += moves
+            for source, towards in source_to_list:
+                if towards != source:
+                    b.append(towards)
+                    units_on_resource.remove(source)
+
     return actions, b, units_on_resource
 
 
@@ -213,3 +219,24 @@ def step_out_of_cities(cluster, cluster_development_settings, city_push_outs, bl
     moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
     moves, source_to_list = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
     return moves
+
+
+# TODO: step into city that benefits the most from this unit.
+def step_into_city(positions, cluster, cluster_development_settings, cities_by_fuel):
+    actions = []
+    unmoved_positions = []
+    for pos in positions:
+        adjacent_positions = cluster_extensions.get_adjacent_positions_within_cluster(pos, cluster)
+        unit_moved = False
+        for city in cities_by_fuel:
+            for city_pos in city[1]:
+                if city_pos in adjacent_positions:
+                    direction = extensions.get_directions_to_target(pos, city_pos)
+                    actions.append(cluster.cell_infos[pos].my_units[0].move(direction))
+                    unit_moved = True
+                    break
+            if unit_moved:
+                break
+        if not unit_moved:
+            unmoved_positions.append(pos)
+    return actions, unmoved_positions
