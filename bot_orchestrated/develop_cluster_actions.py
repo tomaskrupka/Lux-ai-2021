@@ -2,6 +2,7 @@ import math
 
 import cluster_extensions
 import extensions
+from cluster import Cluster
 from churn import solve_churn_with_score, get_move_actions_with_blocks
 
 
@@ -24,6 +25,44 @@ def build_workers_or_research(cluster, cluster_development_settings):
     return actions, units_allowance, units_surplus, researched
 
 
+def pull_units_to_cities(cluster: Cluster, forbidden_units_positions):
+    # identify cities
+    cities = dict()  # id = city
+    for cell_pos, cell_info in cluster.cell_infos.items():
+        if cell_info.my_city:
+            cities[cell_info.my_city.cityid] = cell_info.my_city
+    # score cities
+    cities_scores = dict()  # id = city_score
+    for city_id, city in cities.items():
+        city_score = 0
+        for city_tile in city.citytiles:
+            city_score += 1 - len(cluster.cell_infos[city_tile.pos].my_units)
+        cities_scores[city_id] = city_score
+    # generate actions
+    a = []
+    moved_units_positions = []
+    for cell_pos, cell_info in cluster.cell_infos.items():
+        if cell_info.my_units and not cell_info.my_city_tile and cell_pos not in forbidden_units_positions:
+            options = cluster_extensions.get_adjacent_city_tiles_positions(cluster, cell_pos)
+            if len(options) == 0:
+                continue
+            if len(options) == 1:
+                direction = extensions.get_directions_to_target(cell_pos, options[0])
+            else:
+                high_score = -math.inf
+                high_score_pos = None
+                for option in options:
+                    city_id = cluster.cell_infos[option].my_city.cityid
+                    city_score = cities_scores[city_id]
+                    if city_score > high_score:
+                        high_score_pos = option
+                        high_score = city_score
+                direction = extensions.get_directions_to_target(cell_pos, high_score_pos)
+            moved_units_positions.append(cell_pos)
+            a.append(cell_info.my_units[0].move(direction))
+    return a, moved_units_positions
+
+
 def build_city_tiles(cluster):
     actions = []
     blocked_empty_tiles = []
@@ -36,7 +75,7 @@ def build_city_tiles(cluster):
     return actions, blocked_empty_tiles
 
 
-def step_out_of_resources_into_adjacent_empty(cluster, cluster_development_settings, blocked_positions):
+def step_out_of_resources_into_adjacent_empty(cluster, cluster_development_settings, blocked_positions, unmovable_units):
     positions_options = []
     unmoved_units_on_resource = []
     can_act_units_on_resource = []
@@ -45,7 +84,7 @@ def step_out_of_resources_into_adjacent_empty(cluster, cluster_development_setti
     c = []
 
     for cell_pos, cell_info in cluster.cell_infos.items():
-        if cell_info.resource and cell_info.my_units:
+        if cell_info.resource and cell_info.my_units and cell_pos not in unmovable_units:
             if cell_info.my_units[0].can_act():
                 can_act_units_on_resource.append(cell_pos)
     mined_resource = cluster_extensions.get_mined_resource(cluster_development_settings.research_level)

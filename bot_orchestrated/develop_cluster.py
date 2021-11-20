@@ -3,10 +3,12 @@ import math
 
 import develop_cluster_actions as dca
 import cluster_extensions
+import extensions
 from cluster import Cluster, ClusterDevelopmentSettings
 from lux.game import Game
 from lux.game_map import Position
 
+# TODO: moved units out of each method. -> a, b, m, then input into the next one.
 
 def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevelopmentSettings, game_state: Game):
     actions = []  # To submit to the agent.
@@ -29,6 +31,12 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # PULL UNITS BACK INTO CITIES
 
+    if extensions.get_days_to_night(cluster_development_settings.turn) < 3:
+        a, moved_units = dca.pull_units_to_cities(cluster, cannot_act_units)
+        actions += a
+    else:
+        moved_units = []
+
     # BUILD CITY TILES
     # TODO: exclude units coming to the city with resources.
 
@@ -41,7 +49,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     forbidden_targets = [p for p, i in cluster.cell_infos.items() if i.my_units or p in blocked_positions]
 
     a, b, c, unmoved_units_on_resource = dca.step_out_of_resources_into_adjacent_empty(
-        cluster, cluster_development_settings, forbidden_targets)
+        cluster, cluster_development_settings, forbidden_targets, moved_units)
     actions += a
     blocked_positions += b
     cannot_act_units += c

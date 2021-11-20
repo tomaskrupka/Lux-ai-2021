@@ -24,6 +24,10 @@ def get_mined_resource(research_level):
     return mined_resource
 
 
+def get_adjacent_city_tiles_positions(cluster: Cluster, p: Position):
+    return [p for p in get_adjacent_positions_within_cluster(p, cluster) if cluster.cell_infos[p].my_city_tile]
+
+
 def get_adjacent_development_positions(cluster: Cluster, p: Position):
     adjacent_development_positions = []
     for q in cluster.perimeter:
@@ -41,8 +45,12 @@ def get_adjacent_mining_positions(cluster: Cluster, p: Position, mined_resource)
 
 
 def get_adjacent_positions_within_cluster(p: Position, c: Cluster):
-    adjacent_positions = [Position(a, b) for (a, b) in [(p.x - 1, p.y), (p.x + 1, p.y), (p.x, p.y - 1), (p.x, p.y + 1)]]
-    return [p for p in adjacent_positions if p in c.cell_infos]
+    adjacent_positions_within_cluster = []
+    for cluster_pos in c.cell_infos:
+        if cluster_pos.x == p.x or cluster_pos.y == p.y:
+            if cluster_pos.x - p.x == 1 or p.x - cluster_pos.x == 1 or cluster_pos.y - p.y == 1 or p.y - cluster_pos.y == 1:
+                adjacent_positions_within_cluster.append(cluster_pos)
+    return adjacent_positions_within_cluster
 
 
 def can_mine_on_position(cluster: Cluster, position: Position, mined_resource):
