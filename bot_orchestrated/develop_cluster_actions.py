@@ -4,6 +4,7 @@ import cluster_extensions
 import extensions
 from cluster import Cluster
 from churn import solve_churn_with_score, get_move_actions_with_blocks
+from lux.game_objects import Unit
 
 
 def build_workers_or_research(cluster, cluster_development_settings):
@@ -25,7 +26,7 @@ def build_workers_or_research(cluster, cluster_development_settings):
     return actions, units_allowance, units_surplus, researched
 
 
-def pull_units_to_cities(cluster: Cluster, forbidden_units_positions):
+def pull_units_to_cities(cluster: Cluster, forbidden_units_positions, units_taken_action_ids):
     # identify cities
     cities = dict()  # id = city
     for cell_pos, cell_info in cluster.cell_infos.items():
@@ -40,9 +41,12 @@ def pull_units_to_cities(cluster: Cluster, forbidden_units_positions):
         cities_scores[city_id] = city_score
     # generate actions
     a = []
-    moved_units_positions = []
+    uta = []
     for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.my_units and not cell_info.my_city_tile and cell_pos not in forbidden_units_positions:
+            unit = cell_info.my_units[0]
+            if unit.id in units_taken_action_ids:
+                continue
             options = cluster_extensions.get_adjacent_city_tiles_positions(cluster, cell_pos)
             if len(options) == 0:
                 continue
@@ -58,40 +62,45 @@ def pull_units_to_cities(cluster: Cluster, forbidden_units_positions):
                         high_score_pos = option
                         high_score = city_score
                 direction = extensions.get_directions_to_target(cell_pos, high_score_pos)
-            moved_units_positions.append(cell_pos)
-            a.append(cell_info.my_units[0].move(direction))
-    return a, moved_units_positions
+            a.append(unit.move(direction))
+            uta.append(unit.id)
+    return a, uta
 
 
-def build_city_tiles(cluster):
+def build_city_tiles(cluster, units_taken_actions_ids):
     actions = []
     blocked_empty_tiles = []
+    uta = []
     for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.is_empty and cell_info.my_units:
             unit = cell_info.my_units[0]
             blocked_empty_tiles.append(cell_pos)
-            if unit.can_act() and unit.get_cargo_space_left() == 0:
+            if unit.can_act() and unit.get_cargo_space_left() == 0 and unit.id not in units_taken_actions_ids:
+                uta.append(unit.id)
                 actions.append(unit.build_city())
-    return actions, blocked_empty_tiles
+    return actions, blocked_empty_tiles, uta
 
 
-def step_out_of_resources_into_adjacent_empty(cluster, cluster_development_settings, blocked_positions, unmovable_units):
+def step_out_of_resources_into_adjacent_empty(cluster, cluster_development_settings, blocked_positions,
+                                              units_taken_actions_ids):
     positions_options = []
     unmoved_units_on_resource = []
     can_act_units_on_resource = []
-    actions = []
+    a = []
     b = []
-    c = []
+    # c = []
 
     for cell_pos, cell_info in cluster.cell_infos.items():
-        if cell_info.resource and cell_info.my_units and cell_pos not in unmovable_units:
-            if cell_info.my_units[0].can_act():
+        if cell_info.resource and cell_info.my_units:
+            unit = cell_info.my_units[0]
+            if unit.can_act() and unit.id not in units_taken_actions_ids:
                 can_act_units_on_resource.append(cell_pos)
     mined_resource = cluster_extensions.get_mined_resource(cluster_development_settings.research_level)
     for pos in can_act_units_on_resource:
         adjacent_development_positions = cluster_extensions.get_adjacent_development_positions(cluster, pos)
         # If unit at full capacity, let it move towards any resource
-        considered_resource = mined_resource if cluster.cell_infos[pos].my_units[0].get_cargo_space_left() > 0 else 'URANIUM'
+        considered_resource = mined_resource if cluster.cell_infos[pos].my_units[
+                                                    0].get_cargo_space_left() > 0 else 'URANIUM'
         adjacent_mining_positions = cluster_extensions.get_adjacent_mining_positions(cluster, pos, considered_resource)
         if len(adjacent_development_positions) > 0:
             positions_options.append([pos, [p for p in adjacent_development_positions if
@@ -106,23 +115,25 @@ def step_out_of_resources_into_adjacent_empty(cluster, cluster_development_setti
         for option in options:
             positions_scores[option] = 1
     moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
-    moves, source_to_list = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
-    actions += moves
+    moves, source_to_list, uta = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
+    a += moves
 
     for source, towards in source_to_list:
         if source == towards:
             unmoved_units_on_resource.append(towards)
-        elif cluster.cell_infos[towards].resource:  # Step may have happened outside
+        # elif cluster.cell_infos[towards].resource:  # Step may have happened outside
+        else:
             b.append(towards)
-            c.append(source)
+            # c.append(source)
 
-    return actions, b, c, unmoved_units_on_resource
+    return a, b, uta, unmoved_units_on_resource
 
 
 def step_within_resources(units_on_resource, cluster, cluster_development_settings, blocked_positions):
     mined_resource = cluster_extensions.get_mined_resource(cluster_development_settings.research_level)
     actions = []
     b = []
+    uta = []
 
     # Hack: hide positions without resource from empty_development_positions to prevent trapping units
     # inside U-shaped cities. Remove this and score using real distance to empty development position (dijkstra)
@@ -143,7 +154,7 @@ def step_within_resources(units_on_resource, cluster, cluster_development_settin
                         if dist < min_dist_to_empty:
                             min_dist_to_empty = dist
                 positions_scores[target] = 100 - min_dist_to_empty - 10 * (
-                            cluster.cell_infos[target].my_city_tile is not None)
+                        cluster.cell_infos[target].my_city_tile is not None)
 
             positions_options = []
             for position in units_on_resource:
@@ -159,78 +170,85 @@ def step_within_resources(units_on_resource, cluster, cluster_development_settin
                     positions_options.append([position, options])
 
             moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
-            moves, source_to_list = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
+            moves, source_to_list, cannot_act_ids = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
             actions += moves
+            uta += cannot_act_ids
             for source, towards in source_to_list:
                 if towards != source:
                     b.append(towards)
                     units_on_resource.remove(source)
 
-    return actions, b, units_on_resource
+    return actions, b, uta, units_on_resource
 
 
-def push_out_units_for_export(cluster, cluster_development_settings, units_surplus, blocked_positions, push_out_units):
-    actions = []
+def push_out_units_for_export(cluster, cluster_development_settings, units_to_push_out, blocked_positions,
+                              units_taken_action_ids,
+                              push_out_units):
+    a = []
     b = []
-    # For each export pos try to export from any push-out position
-    push_out_units_remaining = min(units_surplus, cluster_development_settings.units_export_count)
-    satisfied_export_positions = set()
+    uta = []
+    satisfied_export_positions = []
+
+    pushed_out_units_positions = []
+    # For each export pos try to export any push-out unit
     for export_pos in cluster_development_settings.units_export_positions:
-        if push_out_units_remaining <= 0:
+        if units_to_push_out <= 0:
             break
         if export_pos in blocked_positions:
             continue
         for unit_pos in push_out_units:
-            if unit_pos.is_adjacent(export_pos):
-                if cluster.cell_infos[unit_pos].my_units[0].can_act():
+            if unit_pos.is_adjacent(export_pos) and unit_pos not in pushed_out_units_positions:
+                unit = cluster.cell_infos[unit_pos].my_units[0]
+                if unit.can_act() and unit not in units_taken_action_ids:
                     direction = extensions.get_directions_to_target(unit_pos, export_pos)
-                    actions.append(cluster.cell_infos[unit_pos].my_units[0].move(direction))
+                    a.append(unit.move(direction))
                     b.append(export_pos)
+                    uta.append(unit.id)
+                    pushed_out_units_positions.append(unit_pos)
+                    satisfied_export_positions.append(export_pos)
 
-                # Treat as pushed even if could not act. Otherwise another unit would be pushed out of city to fulfill this.
-                push_out_units_remaining -= 1
-                push_out_units.remove(unit_pos)
-                satisfied_export_positions.add(export_pos)
+                # Count as pushed even if could not act. Otherwise another unit would be pushed out of city to fulfill this.
+                units_to_push_out -= 1
                 break
 
-    return actions, b, push_out_units_remaining, satisfied_export_positions, push_out_units
+    return a, b, uta, satisfied_export_positions
 
 
-def get_city_push_outs(cluster, cluster_development_settings, push_out_units_remaining, satisfied_export_positions,
-                       push_out_units, push_out_positions):
-    city_push_outs = dict()
-    for export_pos in cluster_development_settings.units_export_positions:
-        if push_out_units_remaining <= 0:
+def push_out_from_cities(
+        cluster,
+        blocked_positions,
+        count_to_push_out,
+        push_out_positions,
+        units_taken_actions_ids):
+    a = []
+    b = []
+    uta = []
+
+    for push_pos in push_out_positions:
+        if count_to_push_out <= 0:
             break
-        if export_pos in satisfied_export_positions:
+        if push_pos in blocked_positions:
             continue
-        for push_pos in push_out_positions:
-            adjacent_positions = cluster_extensions.get_adjacent_positions_within_cluster(push_pos, cluster)
-            adjacent_positions_any = extensions.get_adjacent_positions(push_pos, cluster_development_settings.width)
-            if export_pos not in adjacent_positions_any:
-                continue
-            unit_pushed = False
-            for adj_pos in adjacent_positions:
-                if cluster.cell_infos[adj_pos].my_city_tile and cluster.cell_infos[adj_pos].my_units:
-                    for unit in cluster.cell_infos[adj_pos].my_units:
-                        if unit not in push_out_units and unit.can_act():
-                            push_out_units_remaining -= 1
-                            push_out_units.append(unit)
-                            unit_pushed = True
-                            if adj_pos in city_push_outs:
-                                city_push_outs[adj_pos].append(push_pos)
-                            else:
-                                city_push_outs[adj_pos] = [push_pos]
-                            break
-                    if unit_pushed:
+        adjacent_positions = cluster_extensions.get_adjacent_positions_within_cluster(push_pos, cluster)
+        unit_pushed = False
+        for adj_pos in adjacent_positions:
+            if cluster.cell_infos[adj_pos].my_city_tile and cluster.cell_infos[adj_pos].my_units:
+                for unit in cluster.cell_infos[adj_pos].my_units:
+                    if unit.can_act() and unit.id not in units_taken_actions_ids and unit.id not in uta:  # unit can be visited multiple times as adjacent to different push out positions.
+                        direction = extensions.get_directions_to_target(adj_pos, push_pos)
+                        a.append(unit.move(direction))
+                        b.append(push_pos)
+                        uta.append(unit.id)
+                        count_to_push_out -= 1
+                        unit_pushed = True
                         break
-            if unit_pushed:
-                break
+                if unit_pushed:
+                    break
 
-    return city_push_outs
+    return a, b, uta
 
 
-def step_out_of_cities(cluster, cluster_development_settings, city_push_outs, blocked_positions):
+def step_out_of_cities_into_mining(cluster, cluster_development_settings, blocked_positions, units_taken_action_ids):
     mined_resource = cluster_extensions.get_mined_resource(cluster_development_settings.research_level)
     positions_options = []
     for cell_pos, cell_info in cluster.cell_infos.items():
@@ -256,7 +274,7 @@ def step_out_of_cities(cluster, cluster_development_settings, city_push_outs, bl
         for push_out in push_outs:
             positions_scores[push_out] = 1000
     moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
-    moves, source_to_list = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
+    moves, source_to_list, uta = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
     return moves
 
 

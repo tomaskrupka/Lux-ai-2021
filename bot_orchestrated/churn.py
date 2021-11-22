@@ -55,16 +55,18 @@ def get_move_actions_with_blocks(positions_options, moves_solutions, cluster):
             positions_units[position].append(cluster.cell_infos[position].my_units[used_units])
         else:
             positions_units[position] = [cluster.cell_infos[position].my_units[0]]
-    blocked_positions = []
+    source_to = []
     actions = []
+    units_taken_action_ids = []
     for position in positions_units:
         if position in moves_solutions:
             for move, unit in zip(moves_solutions[position], positions_units[position]):
                 direction = extensions.get_directions_to_target(position, move)
                 actions.append(unit.move(direction))
-                blocked_positions.append((position, move))
+                units_taken_action_ids.append(unit.id)
+                source_to.append((position, move))
             if len(moves_solutions[position]) < len(positions_units[position]):
-                blocked_positions.append((position, position))
+                source_to.append((position, position))
         else:
-            blocked_positions.append((position, position))
-    return actions, blocked_positions
+            source_to.append((position, position))
+    return actions, source_to, units_taken_action_ids

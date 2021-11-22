@@ -62,23 +62,21 @@ def can_mine_on_position(cluster: Cluster, position: Position, mined_resource):
 
 
 def detect_push_out_units_positions(cluster, cluster_development_settings):
-    push_out_units = []  # units on push out positions
-    push_out_positions = []  # positions to push from to export positions
-    for cell_pos, cell_info in cluster.cell_infos.items():
-        adjacent_positions_any = extensions.get_adjacent_positions(cell_pos, cluster_development_settings.width)
-        adjacent_positions_cluster = get_adjacent_positions_within_cluster(cell_pos, cluster)
-        is_next_to_city = any(pos for pos in adjacent_positions_cluster if cluster.cell_infos[pos].my_city_tile)
-        is_next_to_export_position = any(
-            pos for pos in adjacent_positions_any if pos in cluster_development_settings.units_export_positions)
-        is_push_out_position = is_next_to_city and is_next_to_export_position
-        if is_push_out_position:
-            push_out_positions.append(cell_pos)
-            if cell_info.my_units and cell_info.my_units[0].get_cargo_space_left() == 100:
-                push_out_units.append(cell_pos)
-                if cell_info.my_city_tile:
-                    print('error. push out unit in a city.')
+    push_out_units = set()  # units that can be pushed out
+    push_out_positions = set()  # positions without units to push from to export positions
 
-    return push_out_units, push_out_positions
+    for export_position in cluster_development_settings.units_export_positions:
+        for cell_pos, cell_info in get_adjacent_positions_within_cluster(export_position, cluster):
+            # adjacent_positions_any = extensions.get_adjacent_positions(cell_pos, cluster_development_settings.width)
+            adjacent_positions_cluster = get_adjacent_positions_within_cluster(cell_pos, cluster)
+            is_next_to_city = any(pos for pos in adjacent_positions_cluster if cluster.cell_infos[pos].my_city_tile)
+            if is_next_to_city:
+                if not cell_info.my_units:
+                    push_out_positions.add(cell_pos)
+                elif cell_info.my_units[0].get_cargo_space_left() == 100:
+                    push_out_units.add(cell_pos)
+
+    return list(push_out_units), list(push_out_positions)
 
 
 def get_cannot_act_units(cluster):
