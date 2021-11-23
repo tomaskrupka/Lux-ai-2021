@@ -66,11 +66,12 @@ def detect_push_out_units_positions(cluster, cluster_development_settings):
     push_out_positions = set()  # positions without units to push from to export positions
 
     for export_position in cluster_development_settings.units_export_positions:
-        for cell_pos, cell_info in get_adjacent_positions_within_cluster(export_position, cluster):
+        for cell_pos in get_adjacent_positions_within_cluster(export_position, cluster):
             # adjacent_positions_any = extensions.get_adjacent_positions(cell_pos, cluster_development_settings.width)
             adjacent_positions_cluster = get_adjacent_positions_within_cluster(cell_pos, cluster)
             is_next_to_city = any(pos for pos in adjacent_positions_cluster if cluster.cell_infos[pos].my_city_tile)
             if is_next_to_city:
+                cell_info = cluster.cell_infos[cell_pos]
                 if not cell_info.my_units:
                     push_out_positions.add(cell_pos)
                 elif cell_info.my_units[0].get_cargo_space_left() == 100:
@@ -80,13 +81,14 @@ def detect_push_out_units_positions(cluster, cluster_development_settings):
 
 
 def get_cannot_act_units(cluster):
-    cannot_act_units = []
+    b = []
+    c = []
     for cell_pos, cell_info in cluster.cell_infos.items():
-        if not cell_info.my_city_tile:
-            if cell_info.my_units:
-                if not cell_info.my_units[0].can_act():
-                    cannot_act_units.append(cell_pos)
-    return cannot_act_units
+        for unit in cell_info.my_units:
+            if not unit.can_act():
+                b.append(cell_pos)
+                c.append(unit.id)
+    return b, c
 
 
 def get_cities_fuel_balance(cluster: Cluster, nights):
@@ -99,3 +101,24 @@ def get_cities_fuel_balance(cluster: Cluster, nights):
             else:
                 cities_by_fuel[city.cityid][1].append(pos)
     return cities_by_fuel
+
+
+def get_mining_potential_aggregate(mining_potential, mined_resource):
+    if mined_resource == 'WOOD':
+        return mining_potential['WOOD'] * 20
+    elif mined_resource == 'COAL':
+        return mining_potential['WOOD'] * 20 + mining_potential['COAL'] * 50
+    elif mined_resource == 'URANIUM':
+        return mining_potential['WOOD'] * 20 + mining_potential['COAL'] * 50 + mining_potential['URANIUM'] + 80
+
+
+def get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids):
+    blocked_positions_now = []
+    for p in cluster.cell_infos:
+        if p in blocked_positions:
+            blocked_positions_now.append(p)
+            continue
+        cell_info = cluster.cell_infos[p]
+        if cell_info.my_units and cell_info.my_units[0].id not in cannot_act_units_ids:  # allow occupied where unit moved out.
+            blocked_positions_now.append(p)
+    return blocked_positions_now
