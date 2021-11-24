@@ -123,3 +123,30 @@ def get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids):
         if cell_info.my_units and cell_info.my_units[0].id not in cannot_act_units_ids:
             blocked_positions_now.append(p)
     return blocked_positions_now
+
+
+def get_accessible_and_export_positions(cluster, w):
+    accessible_positions = get_accessible_positions(cluster)
+    export_positions = set()
+    for pos in accessible_positions.intersection(cluster.perimeter):
+        for adj_pos in extensions.get_adjacent_positions(pos, w):
+            if adj_pos not in cluster.cell_infos:
+                export_positions.add(adj_pos)
+    return accessible_positions, export_positions
+
+
+def get_accessible_positions(cluster: Cluster):
+    accessible_positions = set()
+
+    def _add_adjacent_accessible_positions(p):
+        adjacent_positions = get_adjacent_positions_within_cluster(p, cluster)
+        for adj_pos in adjacent_positions:
+            if adj_pos not in accessible_positions:
+                adj_info = cluster.cell_infos[adj_pos]
+                if not adj_info.opponent_city_tile:
+                    accessible_positions.add(adj_pos)
+                    _add_adjacent_accessible_positions(adj_pos)
+
+    for pos in cluster.cell_infos:
+        _add_adjacent_accessible_positions(pos)
+    return accessible_positions

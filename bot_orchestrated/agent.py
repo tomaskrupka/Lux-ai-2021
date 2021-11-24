@@ -9,6 +9,7 @@ if __package__ == "":
     import recon
     import extensions
     import develop_cluster
+    import cluster_extensions
 
 else:
     # for CLI tool
@@ -16,7 +17,7 @@ else:
     from .lux.game_map import Cell
     from .lux.constants import Constants
     from .lux import annotate
-    from . import cluster, extensions, develop_cluster
+    from . import cluster, extensions, develop_cluster, cluster_extensions
     from . import recon
 
 DIRECTIONS = Constants.DIRECTIONS
@@ -83,6 +84,8 @@ def agent(observation, configuration):
     researched = 0
     developing_clusters = [c for c in clusters.values() if c.is_me_present]
     for developing_cluster in developing_clusters:
+
+        developing_cluster.accessible_positions, developing_cluster.export_positions = cluster_extensions.get_accessible_and_export_positions(developing_cluster, game_state.map_width)
         export_positions = []
         export_units_count = 0
         if free_clusters:
