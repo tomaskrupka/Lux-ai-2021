@@ -11,7 +11,7 @@ def build_workers_or_research(cluster, cluster_development_settings):
     units_allowance = cluster_development_settings.units_build_allowance
     researched = 0  # Prevent researching past 200 here and in other clusters
     units_needed, has_units = cluster_extensions.get_units_needed_for_maintenance(cluster)
-    units_surplus = has_units - units_needed - cluster_development_settings.units_export_count
+    units_surplus = has_units - units_needed
     units_surplus_balance = units_surplus
     a = []
     for city_cell in [cell_info for cell_coords, cell_info in cluster.cell_infos.items() if cell_info.my_city_tile]:
@@ -169,7 +169,7 @@ def step_within_resources(units_on_resource, cluster, cluster_development_settin
                 options = []
                 for adj_pos in cluster_extensions.get_adjacent_positions_within_cluster(position, cluster):
                     adj_cell_info = cluster.cell_infos[adj_pos]
-                    if adj_cell_info.resource and adj_pos not in blocked_positions:
+                    if adj_cell_info.resource and adj_pos not in blocked_positions and adj_pos not in b:
                         options.append(adj_pos)
                 if len(options) > 0:
                     positions_options.append([position, options])

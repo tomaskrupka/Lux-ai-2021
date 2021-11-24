@@ -35,9 +35,6 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     # BUILD CITY TILES
     # TODO: exclude units coming to the city with resources.
 
-    if cluster_development_settings.turn == 27:
-        print('turn is 27')
-
     a, b, c = dca.build_city_tiles(cluster, cannot_act_units_ids)
     actions += a
     blocked_positions += b
@@ -49,7 +46,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     push_out_units: list  # ordered units next to export positions
 
     push_out_units, push_out_positions = ce.detect_push_out_units_positions(cluster, cluster_development_settings)
-    to_push_out_count = min(units_surplus, cluster_development_settings.units_export_count)
+    to_push_out_count = units_surplus
 
     a, b, c, satisfied_export_positions = dca.push_out_units_for_export(
         cluster,
@@ -69,7 +66,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     a, b, c = dca.push_out_from_cities(
         cluster,
         blocked_positions,
-        to_push_out_count - to_push_out_count_remaining,
+        to_push_out_count_remaining,
         push_out_positions,
         cannot_act_units_ids)
 
@@ -115,11 +112,12 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # STEP OUT OF CITIES INTO MINING POSITIONS
 
-    a, b, c = dca.step_out_of_cities_into_mining(
-        cluster,
-        cluster_development_settings,
-        blocked_positions,
-        cannot_act_units_ids)
-    actions += a
+    if not night_mode:
+        a, b, c = dca.step_out_of_cities_into_mining(
+            cluster,
+            cluster_development_settings,
+            blocked_positions,
+            cannot_act_units_ids)
+        actions += a
     actions_allowance = [actions, units_allowance, researched]
     return actions_allowance

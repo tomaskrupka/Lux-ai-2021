@@ -1,5 +1,6 @@
 import math
 import extensions
+from bot_orchestrated import cluster_extensions
 from lux.game import Game
 from lux.game_constants import GAME_CONSTANTS
 from lux.game_map import Resource, Position
@@ -36,15 +37,11 @@ class ClusterDevelopmentSettings:
                  turn: int,
                  units_build_allowance: int,
                  units_export_positions: list,
-                 units_export_count: int,
-                 upcoming_cycles: list,
                  research_level: int,
                  width: int):
         self.turn = turn
         self.units_build_allowance = units_build_allowance
         self.units_export_positions = units_export_positions
-        self.units_export_count = units_export_count
-        self.upcoming_cycles = upcoming_cycles
         self.research_level = research_level
         self.width = width
 
@@ -109,4 +106,31 @@ class Cluster:
                                     RESOURCE_TYPE] += amount if amount < collection_rate else collection_rate
                                 break
             self.cell_infos[cell_pos].mining_potential = resource_amounts
+        self.accessible_positions, self.export_positions = get_accessible_and_export_positions(self, game_state.map_width)
 
+
+    def _get_accessible_and_export_positions(cluster, w):
+        accessible_positions = get_accessible_positions(cluster)
+        export_positions = set()
+        for pos in accessible_positions.intersection(cluster.perimeter):
+            for adj_pos in extensions.get_adjacent_positions(pos, w):
+                if adj_pos not in cluster.cell_infos:
+                    export_positions.add(adj_pos)
+        return accessible_positions, export_positions
+
+
+    def get_accessible_positions(cluster: Cluster):
+        accessible_positions = set()
+
+        def _add_adjacent_accessible_positions(p):
+            adjacent_positions = get_adjacent_positions_within_cluster(p, cluster)
+            for adj_pos in adjacent_positions:
+                if adj_pos not in accessible_positions:
+                    adj_info = cluster.cell_infos[adj_pos]
+                    if not adj_info.opponent_city_tile:
+                        accessible_positions.add(adj_pos)
+                        _add_adjacent_accessible_positions(adj_pos)
+
+        for pos in cluster.cell_infos:
+            _add_adjacent_accessible_positions(pos)
+        return accessible_positions

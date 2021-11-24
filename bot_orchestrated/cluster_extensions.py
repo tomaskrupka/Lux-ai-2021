@@ -119,6 +119,7 @@ def get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids):
             blocked_positions_now.append(p)
             continue
         cell_info = cluster.cell_infos[p]
-        if cell_info.my_units and cell_info.my_units[0].id not in cannot_act_units_ids:  # allow occupied where unit moved out.
+        # allow occupied where unit moved out.
+        if cell_info.my_units and cell_info.my_units[0].id not in cannot_act_units_ids:
             blocked_positions_now.append(p)
     return blocked_positions_now

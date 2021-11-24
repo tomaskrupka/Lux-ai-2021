@@ -85,7 +85,7 @@ def get_closest_cluster(position: Position, clusters: [Cluster]):
 
 
 def get_cluster_export_positions_for_free_cluster(free_cluster: Cluster, exporting_cluster: Cluster, w):
-    cluster_export_positions = get_cluster_export_positions(exporting_cluster, w)
+    cluster_export_positions = exporting_cluster.export_positions
     export_positions_scores = []
     for export_position in cluster_export_positions:
         min_distance = math.inf
@@ -96,12 +96,3 @@ def get_cluster_export_positions_for_free_cluster(free_cluster: Cluster, exporti
         export_positions_scores.append((export_position, min_distance))
     export_positions_scores.sort(key=lambda x: x[1])
     return export_positions_scores
-
-
-def get_cluster_export_positions(cluster: Cluster, w):
-    export_positions = set()
-    for pos in cluster.cell_infos:
-        for adj_pos in extensions.get_adjacent_positions(pos, w):
-            if adj_pos not in cluster.cell_infos:
-                export_positions.add(adj_pos)
-    return export_positions

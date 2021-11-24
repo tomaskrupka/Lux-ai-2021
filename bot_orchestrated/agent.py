@@ -109,8 +109,6 @@ def agent(observation, configuration):
                 turn=game_state.turn,
                 units_build_allowance=remaining_units_allowance,
                 units_export_positions=export_positions,
-                units_export_count=export_units_count,
-                upcoming_cycles=[],
                 research_level=me.research_points+researched,
                 width=game_state.map_width),
             game_state)
