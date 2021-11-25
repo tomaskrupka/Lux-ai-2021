@@ -165,3 +165,24 @@ def get_accessible_positions(cluster: Cluster):
     for pos in cluster.cell_infos:
         _add_adjacent_accessible_positions(pos)
     return accessible_positions
+
+
+def get_cities_scores_mineability(cluster: Cluster, mined_resource):
+    # identify cities
+    cities = dict()  # id = city
+    for cell_pos, cell_info in cluster.cell_infos.items():
+        if cell_info.my_city:
+            cities[cell_info.my_city.cityid] = cell_info.my_city
+    # score cities
+    cities_scores = dict()  # id = city_score
+    cities_mineabilities = dict()
+    for city_id, city in cities.items():
+        city_score = 0
+        city_mineability = dict()
+        for city_tile in city.citytiles:
+            city_score += 1 - len(cluster.cell_infos[city_tile.pos].my_units)
+            city_mineability[city_tile.pos] = get_mining_potential_aggregate(
+                cluster.cell_infos[city_tile.pos].mining_potential, mined_resource)
+        cities_mineabilities[city_id] = city_mineability
+        cities_scores[city_id] = city_score
+    return cities, cities_scores, cities_mineabilities

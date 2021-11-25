@@ -19,13 +19,18 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     blocked_positions = []  # Growing list of taken positions during development to prevent collisions.
     cannot_act_units_ids = []  # Growing list of units that have taken action to prevent multiple commands.
     night_mode = extensions.get_days_to_night(cluster_development_settings.turn) < 3
+    cities: dict  # id = city
+    cities_scores: dict  # id = city_score
+    cities_mineabilities: dict  # id = (dict: pos = mining_potential)
+    mined_resource = ""  # Resource I'm able to mine given my research level.
+
+    mined_resource = ce.get_mined_resource(cluster_development_settings.research_level)
+
+    cities, cities_scores, cities_mineabilities = ce.get_cities_scores_mineability(cluster, mined_resource)
 
     b, c = ce.get_cannot_act_units(cluster)  # init with units with cooldown
     blocked_positions += b
     cannot_act_units_ids += c
-
-    # if game_state.turn == 4:
-    #     print('turn is 4')
 
     cities_by_fuel = ce.get_cities_fuel_balance(cluster, 10).values()
 
@@ -34,9 +39,6 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     a, units_allowance, units_surplus, researched = dca.build_workers_or_research(
         cluster, cluster_development_settings)
     actions += a
-
-    # if a:
-    #     print('i have actions')
 
     # BUILD CITY TILES
     # TODO: exclude units coming to the city with resources.
@@ -78,7 +80,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     # PULL UNITS BACK INTO CITIES
 
     if night_mode:
-        a, c = dca.pull_units_to_cities(cluster, cannot_act_units_ids)
+        a, c = dca.pull_units_to_cities(cluster, cities_scores, cannot_act_units_ids)
         actions += a
         cannot_act_units_ids += c
 
@@ -87,7 +89,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     blocked_positions_now = ce.get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids)
 
     a, b, c, unmoved_units_on_resource = dca.step_out_of_resources_into_adjacent_empty(
-        cluster, cluster_development_settings, blocked_positions_now, cannot_act_units_ids)
+        cluster, mined_resource, blocked_positions_now, cannot_act_units_ids)
     actions += a
     blocked_positions += b
     cannot_act_units_ids += c
@@ -107,7 +109,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
         # IF SOME UNITS ON RESOURCES COULD NOT MOVE, PULL THEM BACK TO CITY
 
         if not night_mode:
-            a, c = dca.pull_units_to_cities(cluster, cannot_act_units_ids)
+            a, c = dca.pull_units_to_cities(cluster, cities_scores, cannot_act_units_ids)
             actions += a
             cannot_act_units_ids += c
 
@@ -120,5 +122,14 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
             blocked_positions,
             cannot_act_units_ids)
         actions += a
+        cannot_act_units_ids += c
+
+    # MOVE WITHIN CITIES INTO BETTER MINING POSITIONS
+
+    if night_mode:
+        a, c = dca.step_within_cities_into_better_mining_positions(cities_mineabilities, cluster, cannot_act_units_ids)
+        actions += a
+        cannot_act_units_ids += c
+
     actions_allowance = [actions, units_allowance, researched]
     return actions_allowance

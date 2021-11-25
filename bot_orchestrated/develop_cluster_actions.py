@@ -26,20 +26,7 @@ def build_workers_or_research(cluster, cluster_development_settings):
     return a, units_allowance, units_surplus, researched
 
 
-def pull_units_to_cities(cluster: Cluster, cannot_act_units_ids):
-    # identify cities
-    cities = dict()  # id = city
-    for cell_pos, cell_info in cluster.cell_infos.items():
-        if cell_info.my_city:
-            cities[cell_info.my_city.cityid] = cell_info.my_city
-    # score cities
-    cities_scores = dict()  # id = city_score
-    for city_id, city in cities.items():
-        city_score = 0
-        for city_tile in city.citytiles:
-            city_score += 1 - len(cluster.cell_infos[city_tile.pos].my_units)
-        cities_scores[city_id] = city_score
-    # generate actions
+def pull_units_to_cities(cluster: Cluster, cities_scores, cannot_act_units_ids):
     a = []
     c = []
     for cell_pos, cell_info in cluster.cell_infos.items():
@@ -67,6 +54,47 @@ def pull_units_to_cities(cluster: Cluster, cannot_act_units_ids):
     return a, c
 
 
+def step_within_cities_into_better_mining_positions(
+        cities_mineabilities,
+        cluster: Cluster,
+        cannot_act_units_ids):
+    a = []
+    c = []
+    for city_id in cities_mineabilities:
+        # find best mining position
+        max_mineability = -math.inf
+        best_mining_pos = None
+        for pos, mineability in cities_mineabilities[city_id].items():
+            if mineability > max_mineability:
+                best_mining_pos = pos
+                max_mineability = mineability
+
+        for pos in cities_mineabilities[city_id]:
+            if cluster.cell_infos[pos].my_units:
+                can_act_units_on_pos = [u for u in cluster.cell_infos[pos].my_units if u.id not in cannot_act_units_ids]
+                if can_act_units_on_pos:
+                    units_moved = False
+                    all_directions = extensions.get_all_directions_to_target(pos, best_mining_pos)
+                    for direction in all_directions:
+                        if direction != 'c':
+                            new_pos = extensions.get_new_position(pos, direction)
+                            if new_pos in cities_mineabilities[city_id]:
+                                for unit in can_act_units_on_pos:
+                                    a.append(unit.move(direction))
+                                    c.append(unit.id)
+                                units_moved = True
+                                break
+                    if not units_moved:
+                        adjacent_positions = cluster_extensions.get_adjacent_positions_within_cluster(pos, cluster)
+                        for adj_pos in adjacent_positions:
+                            if adj_pos in cities_mineabilities[city_id] and cities_mineabilities[city_id][adj_pos] > cities_mineabilities[city_id][pos]:
+                                for unit in can_act_units_on_pos:
+                                    direction = extensions.get_directions_to_target(pos, adj_pos)
+                                    a.append(unit.move(direction))
+                                    c.append(unit.id)
+    return a, c
+
+
 def build_city_tiles(cluster, units_taken_actions_ids):
     a = []
     b = []
@@ -83,7 +111,7 @@ def build_city_tiles(cluster, units_taken_actions_ids):
 
 def step_out_of_resources_into_adjacent_empty(
         cluster,
-        cluster_development_settings,
+        mined_resource,
         forbidden_targets,
         cannot_act_units_ids):
     positions_options = []
@@ -97,7 +125,6 @@ def step_out_of_resources_into_adjacent_empty(
             unit = cell_info.my_units[0]
             if unit.id not in cannot_act_units_ids:
                 can_act_units_on_resource.append(cell_pos)
-    mined_resource = cluster_extensions.get_mined_resource(cluster_development_settings.research_level)
     for pos in can_act_units_on_resource:
         adjacent_development_positions = cluster_extensions.get_adjacent_development_positions(cluster, pos)
         # If unit at full capacity, let it move towards any resource
