@@ -24,6 +24,9 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     blocked_positions += b
     cannot_act_units_ids += c
 
+    # if game_state.turn == 4:
+    #     print('turn is 4')
+
     cities_by_fuel = ce.get_cities_fuel_balance(cluster, 10).values()
 
     # CITY TILE ACTIONS
@@ -31,6 +34,9 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     a, units_allowance, units_surplus, researched = dca.build_workers_or_research(
         cluster, cluster_development_settings)
     actions += a
+
+    # if a:
+    #     print('i have actions')
 
     # BUILD CITY TILES
     # TODO: exclude units coming to the city with resources.
@@ -42,28 +48,23 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # EXPORT UNITS FROM PUSH OUT POSITIONS
 
-    push_out_positions: list  # ordered positions to export from without my units
-    push_out_units: list  # ordered units next to export positions
+    push_out_positions: set  # positions to export from without my units
+    push_out_units: set  # units next to export positions
 
-    push_out_units, push_out_positions = ce.detect_push_out_units_positions(cluster, cluster_development_settings)
+    push_out_units, push_out_positions = ce.detect_push_out_units_positions_anywhere(cluster, cluster_development_settings)
     to_push_out_count = units_surplus
 
-    a, b, c, satisfied_export_positions = dca.push_out_units_for_export(
-        cluster,
-        cluster_development_settings,
-        to_push_out_count,
-        blocked_positions,
-        cannot_act_units_ids,
-        push_out_units)
+    a, b, c, satisfied_export_positions = dca.export_units(cluster, cluster_development_settings, to_push_out_count,
+                                                           blocked_positions, cannot_act_units_ids, push_out_units)
     actions += a
     blocked_positions += b
     cannot_act_units_ids += c
 
-    # PUSH OUT FROM CITIES
+    # PUSH OUT
 
     to_push_out_count_remaining = to_push_out_count - len(c)
 
-    a, b, c = dca.push_out_from_cities(
+    a, b, c = dca.push_out_from_anywhere(
         cluster,
         blocked_positions,
         to_push_out_count_remaining,

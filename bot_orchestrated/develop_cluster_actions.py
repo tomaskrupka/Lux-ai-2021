@@ -187,9 +187,12 @@ def step_within_resources(units_on_resource, cluster, cluster_development_settin
     return a, b, c, units_on_resource
 
 
-def push_out_units_for_export(cluster, cluster_development_settings, units_to_push_out, blocked_positions,
-                              units_taken_action_ids,
-                              push_out_units):
+def export_units(cluster,
+                 cluster_development_settings,
+                 units_to_push_out,
+                 blocked_positions,
+                 cannot_act_units_ids,
+                 push_out_units):
     a = []
     b = []
     c = []
@@ -205,7 +208,7 @@ def push_out_units_for_export(cluster, cluster_development_settings, units_to_pu
         for unit_pos in push_out_units:
             if unit_pos.is_adjacent(export_pos) and unit_pos not in pushed_out_units_positions:
                 unit = cluster.cell_infos[unit_pos].my_units[0]
-                if unit.can_act() and unit not in units_taken_action_ids:
+                if unit.id not in cannot_act_units_ids:
                     direction = extensions.get_directions_to_target(unit_pos, export_pos)
                     a.append(unit.move(direction))
                     b.append(export_pos)
@@ -218,6 +221,38 @@ def push_out_units_for_export(cluster, cluster_development_settings, units_to_pu
                 break
 
     return a, b, c, satisfied_export_positions
+
+
+def push_out_from_anywhere(
+        cluster,
+        blocked_positions,
+        count_to_push_out,
+        push_out_positions,
+        cannot_act_units):
+    a = []
+    b = []
+    c = []
+    for push_pos in push_out_positions:
+        if count_to_push_out <= 0:
+            break
+        if push_pos in blocked_positions:
+            continue
+        adjacent_positions = cluster_extensions.get_adjacent_positions_within_cluster(push_pos, cluster)
+        unit_pushed = False
+        for adj_pos in adjacent_positions:
+            if cluster.cell_infos[adj_pos].my_units:
+                for unit in cluster.cell_infos[adj_pos].my_units:
+                    if unit.id not in cannot_act_units and unit.id not in c:  # unit can be visited multiple times as adjacent to different push out positions.
+                        direction = extensions.get_directions_to_target(adj_pos, push_pos)
+                        a.append(unit.move(direction))
+                        b.append(push_pos)
+                        c.append(unit.id)
+                        count_to_push_out -= 1
+                        unit_pushed = True
+                        break
+                if unit_pushed:
+                    break
+    return a, b, c
 
 
 def push_out_from_cities(

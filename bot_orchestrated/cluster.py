@@ -106,4 +106,4 @@ class Cluster:
                                 break
             self.cell_infos[cell_pos].mining_potential = resource_amounts
         self.export_positions = None
-        self.development_positions = None
+        self.accessible_positions = None

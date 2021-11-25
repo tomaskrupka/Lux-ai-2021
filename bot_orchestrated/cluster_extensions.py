@@ -9,9 +9,9 @@ def get_units_needed_for_maintenance(c: Cluster):
     for pos, cell_info in c.cell_infos.items():
         if cell_info.my_units:
             has_units_count += len(cell_info.my_units)
-        if cell_info.my_city_tile or cell_info.resource:
-            serviceable_positions += 1
-    optimal_units_count = serviceable_positions / 6
+        # if cell_info.my_city_tile or cell_info.resource:
+        #     serviceable_positions += 1
+    optimal_units_count = len(c.cell_infos) / 6
     return optimal_units_count, has_units_count
 
 
@@ -61,7 +61,22 @@ def can_mine_on_position(cluster: Cluster, position: Position, mined_resource):
     return can_mine_here
 
 
-def detect_push_out_units_positions(cluster, cluster_development_settings):
+def detect_push_out_units_positions_anywhere(cluster, cluster_development_settings):
+    push_out_units = set()  # units that can be pushed out
+    push_out_positions = set()  # positions without units to push from to export positions
+
+    for export_position in cluster_development_settings.units_export_positions:
+        for cell_pos in get_adjacent_positions_within_cluster(export_position, cluster):
+            cell_info = cluster.cell_infos[cell_pos]
+            if not cell_info.my_units:
+                push_out_positions.add(cell_pos)
+            else:
+                push_out_units.add(cell_pos)
+
+    return push_out_units, push_out_positions
+
+
+def detect_push_out_units_positions_next_to_cities(cluster, cluster_development_settings):
     push_out_units = set()  # units that can be pushed out
     push_out_positions = set()  # positions without units to push from to export positions
 

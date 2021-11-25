@@ -104,7 +104,8 @@ def agent(observation, configuration):
                         taken_free_cluster = free_cluster
                         best_export_positions = export_positions
             free_clusters.remove(taken_free_cluster)
-            export_positions = [ep[0] for ep in best_export_positions]
+            export_positions = [best_export_positions[0][0]]
+            # export_positions = [ep[0] for ep in best_export_positions]
             export_units_count = 1
         development_result = develop_cluster.develop_cluster(
             developing_cluster,
