@@ -144,7 +144,7 @@ def step_out_of_resources_into_adjacent_empty(
         for option in options:
             positions_scores[option] = 1
     moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
-    moves, source_to_list, c = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
+    moves, source_to_list, c = get_move_actions_with_blocks(positions_options, moves_solutions, cluster, [])
     a += moves
 
     for source, towards in source_to_list:
@@ -159,7 +159,6 @@ def step_out_of_resources_into_adjacent_empty(
 
 
 def step_within_resources(units_on_resource, cluster, cluster_development_settings, blocked_positions):
-    mined_resource = cluster_extensions.get_mined_resource(cluster_development_settings.research_level)
     a = []
     b = []
     c = []
@@ -180,7 +179,10 @@ def step_within_resources(units_on_resource, cluster, cluster_development_settin
                 min_dist_to_empty = math.inf
                 for position in mineable_development_positions:
                     # Add position next to unlocked resources only for loaded units
-                    can_mine_on_position = cluster_extensions.can_mine_on_position(cluster, position, mined_resource)
+                    can_mine_on_position = cluster_extensions.can_mine_on_position(
+                        cluster,
+                        position,
+                        cluster_development_settings.mined_resource)
                     if cycle_loaded or can_mine_on_position:
                         dist = position.distance_to(target)
                         if dist < min_dist_to_empty:
@@ -203,7 +205,7 @@ def step_within_resources(units_on_resource, cluster, cluster_development_settin
 
             moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
             moves, source_to_list, cannot_act_ids = get_move_actions_with_blocks(positions_options, moves_solutions,
-                                                                                 cluster)
+                                                                                 cluster, [])
             a += moves
             c += cannot_act_ids
             for source, towards in source_to_list:
@@ -317,14 +319,16 @@ def push_out_from_cities(
 
 
 def step_out_of_cities_into_mining(cluster, cluster_development_settings, blocked_positions, cannot_act_units_ids):
-    mined_resource = cluster_extensions.get_mined_resource(cluster_development_settings.research_level)
     positions_options = []
 
     for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.my_city_tile and cell_info.my_units:
             # free adjacent mining positions
             cell_pos_options = [p for p in
-                                cluster_extensions.get_adjacent_mining_positions(cluster, cell_pos, mined_resource) if
+                                cluster_extensions.get_adjacent_mining_positions(
+                                    cluster,
+                                    cell_pos,
+                                    cluster_development_settings.mined_resource) if
                                 not cluster.cell_infos[p].my_city_tile and
                                 not cluster.cell_infos[p].opponent_city_tile and
                                 p not in blocked_positions]
@@ -336,9 +340,9 @@ def step_out_of_cities_into_mining(cluster, cluster_development_settings, blocke
     for position, options in positions_options:
         for option in options:
             positions_scores[option] = cluster_extensions.get_mining_potential_aggregate(
-                cluster.cell_infos[option].mining_potential, mined_resource)
+                cluster.cell_infos[option].mining_potential, cluster_development_settings.mined_resource)
     moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
-    a, source_to_list, c = get_move_actions_with_blocks(positions_options, moves_solutions, cluster)
+    a, source_to_list, c = get_move_actions_with_blocks(positions_options, moves_solutions, cluster, cannot_act_units_ids)
     b = []
     for source, towards in source_to_list:
         if towards != source:

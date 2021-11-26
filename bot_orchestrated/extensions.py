@@ -74,3 +74,12 @@ def get_all_directions_to_target(position_from, position_to):
 
 def get_days_to_night(turn):
     return max(30 - turn % 40, 0)
+
+
+def get_mined_resource(research_level):
+    mined_resource = 'WOOD'
+    if research_level >= 50:
+        mined_resource = 'COAL'
+    if research_level >= 200:
+        mined_resource = 'URANIUM'
+    return mined_resource

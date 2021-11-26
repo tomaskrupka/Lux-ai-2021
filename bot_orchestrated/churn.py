@@ -47,26 +47,27 @@ def get_position_options_reduction(positions_options, pos_to_remove, opt_to_remo
     return positions_options_reduction
 
 
-def get_move_actions_with_blocks(positions_options, moves_solutions, cluster):
+def get_move_actions_with_blocks(positions_options, moves_solutions, cluster, cannot_act_units):
     positions_units = dict()
     for position, options in positions_options:
+        usable_units = [u for u in cluster.cell_infos[position].my_units if u.id not in cannot_act_units]
         if position in positions_units:
             used_units = len(positions_units[position])
-            positions_units[position].append(cluster.cell_infos[position].my_units[used_units])
+            positions_units[position].append(usable_units[used_units])
         else:
-            positions_units[position] = [cluster.cell_infos[position].my_units[0]]
+            positions_units[position] = [usable_units[0]]
     source_to = []
     actions = []
-    units_taken_action_ids = []
+    c = []
     for position in positions_units:
         if position in moves_solutions:
             for move, unit in zip(moves_solutions[position], positions_units[position]):
                 direction = extensions.get_directions_to_target(position, move)
                 actions.append(unit.move(direction))
-                units_taken_action_ids.append(unit.id)
+                c.append(unit.id)
                 source_to.append((position, move))
             if len(moves_solutions[position]) < len(positions_units[position]):
                 source_to.append((position, position))
         else:
             source_to.append((position, position))
-    return actions, source_to, units_taken_action_ids
+    return actions, source_to, c

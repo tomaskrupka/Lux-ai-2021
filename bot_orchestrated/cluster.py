@@ -43,6 +43,7 @@ class ClusterDevelopmentSettings:
         self.units_export_positions = units_export_positions
         self.research_level = research_level
         self.width = width
+        self.mined_resource = extensions.get_mined_resource(research_level)
 
 
 class Cluster:

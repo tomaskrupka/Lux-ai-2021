@@ -22,11 +22,8 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     cities: dict  # id = city
     cities_scores: dict  # id = city_score
     cities_mineabilities: dict  # id = (dict: pos = mining_potential)
-    mined_resource = ""  # Resource I'm able to mine given my research level.
 
-    mined_resource = ce.get_mined_resource(cluster_development_settings.research_level)
-
-    cities, cities_scores, cities_mineabilities = ce.get_cities_scores_mineability(cluster, mined_resource)
+    cities, cities_scores, cities_mineabilities = ce.get_cities_scores_mineability(cluster, cluster_development_settings.mined_resource)
 
     b, c = ce.get_cannot_act_units(cluster)  # init with units with cooldown
     blocked_positions += b
@@ -56,26 +53,28 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     push_out_units, push_out_positions = ce.detect_push_out_units_positions_anywhere(cluster, cluster_development_settings)
     to_push_out_count = units_surplus
 
-    a, b, c, satisfied_export_positions = dca.export_units(cluster, cluster_development_settings, to_push_out_count,
-                                                           blocked_positions, cannot_act_units_ids, push_out_units)
-    actions += a
-    blocked_positions += b
-    cannot_act_units_ids += c
+    if not night_mode:
+        a, b, c, satisfied_export_positions = dca.export_units(cluster, cluster_development_settings, to_push_out_count,
+                                                               blocked_positions, cannot_act_units_ids, push_out_units)
+        actions += a
+        blocked_positions += b
+        cannot_act_units_ids += c
 
     # PUSH OUT
 
-    to_push_out_count_remaining = to_push_out_count - len(c)
+    if not night_mode:
+        to_push_out_count_remaining = to_push_out_count - len(c)
 
-    a, b, c = dca.push_out_from_anywhere(
-        cluster,
-        blocked_positions,
-        to_push_out_count_remaining,
-        push_out_positions,
-        cannot_act_units_ids)
+        a, b, c = dca.push_out_from_anywhere(
+            cluster,
+            blocked_positions,
+            to_push_out_count_remaining,
+            push_out_positions,
+            cannot_act_units_ids)
 
-    actions += a
-    blocked_positions += b
-    cannot_act_units_ids += c
+        actions += a
+        blocked_positions += b
+        cannot_act_units_ids += c
 
     # PULL UNITS BACK INTO CITIES
 
@@ -89,7 +88,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     blocked_positions_now = ce.get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids)
 
     a, b, c, unmoved_units_on_resource = dca.step_out_of_resources_into_adjacent_empty(
-        cluster, mined_resource, blocked_positions_now, cannot_act_units_ids)
+        cluster, cluster_development_settings.mined_resource, blocked_positions_now, cannot_act_units_ids)
     actions += a
     blocked_positions += b
     cannot_act_units_ids += c
