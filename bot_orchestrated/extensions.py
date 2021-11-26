@@ -1,6 +1,6 @@
 import math
-from typing import Optional
 
+from cluster import Cluster
 from lux.game import Game
 from lux.game_map import Position
 
@@ -83,3 +83,19 @@ def get_mined_resource(research_level):
     if research_level >= 200:
         mined_resource = 'URANIUM'
     return mined_resource
+
+
+def get_unit_range(cargo, turn):
+    days_to_night = get_days_to_night(turn)
+    return int((days_to_night + cargo / 4) / 2)
+
+
+def get_distance_position_to_cluster(position, cluster: Cluster):
+    min_distance = math.inf
+    min_distance_pos = None
+    for perimeter_pos in cluster.perimeter:
+        distance = perimeter_pos.distance_to(position)
+        if min_distance > distance:
+            min_distance = distance
+            min_distance_pos = perimeter_pos
+    return min_distance, min_distance_pos

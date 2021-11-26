@@ -29,7 +29,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     blocked_positions += b
     cannot_act_units_ids += c
 
-    cities_by_fuel = ce.get_cities_fuel_balance(cluster, 10).values()
+    # todo: put opponent cities into blocked positions
 
     # CITY TILE ACTIONS
 

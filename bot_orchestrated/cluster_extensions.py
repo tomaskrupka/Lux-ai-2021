@@ -131,6 +131,15 @@ def get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids):
     return blocked_positions_now
 
 
+def get_reachable_perimeter(cluster: Cluster):
+    reachable_perimeter = []
+    for p in cluster.perimeter:
+        for adj_pos in get_adjacent_positions_within_cluster(p, cluster):
+            if cluster.cell_infos[adj_pos].my_units:
+                reachable_perimeter.append(p)
+    return reachable_perimeter
+
+
 def get_accessible_and_export_positions(cluster, w):
     accessible_positions = get_accessible_positions(cluster)
     export_positions = set()
@@ -154,7 +163,8 @@ def get_accessible_positions(cluster: Cluster):
                     _add_adjacent_accessible_positions(adj_pos)
 
     for pos in cluster.cell_infos:
-        _add_adjacent_accessible_positions(pos)
+        if cluster.cell_infos[pos].my_units:
+            _add_adjacent_accessible_positions(pos)
     return accessible_positions
 
 

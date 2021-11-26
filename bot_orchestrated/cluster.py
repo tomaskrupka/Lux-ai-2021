@@ -61,6 +61,7 @@ class Cluster:
         self.perimeter = [pos for pos in all_cluster_coordinates if pos not in non_empty_coordinates]
         self.is_me_present = False
         self.is_opponent_present = False
+        self.resource_amounts_total = {'wood': 0, 'coal': 0, 'uranium': 0}
         for p in all_cluster_coordinates:
             cell_info = game_state.map.get_cell_by_pos(p)
             my_city_tile = my_city_tiles[p][1] if p in my_city_tiles else None
@@ -68,6 +69,7 @@ class Cluster:
             has_resource = cell_info.has_resource()
             if has_resource:
                 self.resource_positions.add(p)
+                self.resource_amounts_total[cell_info.resource.type] += cell_info.resource.amount
             cell_info = CellInfo(
                 position=p,
                 my_city_tile=my_city_tile,
@@ -81,7 +83,7 @@ class Cluster:
             )
 
             self.cell_infos[p] = cell_info
-            if cell_info.my_city_tile or cell_info.my_units:
+            if cell_info.my_city_tile:
                 self.is_me_present = True
             if cell_info.opponent_city_tile or cell_info.opponent_units:
                 self.is_opponent_present = True
@@ -106,5 +108,11 @@ class Cluster:
                                     RESOURCE_TYPE] += amount if amount < collection_rate else collection_rate
                                 break
             self.cell_infos[cell_pos].mining_potential = resource_amounts
-        self.export_positions = None
-        self.accessible_positions = None
+        self.reachable_export_positions = None
+        self.reachable_positions = None
+
+    def set_reachable_export_positions(self, export_positions):
+        self.reachable_export_positions = export_positions
+
+    def set_reachable_positions(self, accessible_positions):
+        self.reachable_positions = accessible_positions

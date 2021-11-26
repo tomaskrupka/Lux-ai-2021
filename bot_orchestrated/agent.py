@@ -10,6 +10,7 @@ if __package__ == "":
     import extensions
     import develop_cluster
     import cluster_extensions
+    import agent_extensions
 
 else:
     # for CLI tool
@@ -17,7 +18,7 @@ else:
     from .lux.game_map import Cell
     from .lux.constants import Constants
     from .lux import annotate
-    from . import cluster, extensions, develop_cluster, cluster_extensions
+    from . import cluster, extensions, develop_cluster, cluster_extensions, agent_extensions, agent_actions
     from . import recon
 
 DIRECTIONS = Constants.DIRECTIONS
@@ -46,83 +47,61 @@ def agent(observation, configuration):
     opponent = game_state.players[(observation.player + 1) % 2]
     my_city_tiles = recon.get_player_city_tiles(me)
     opponent_city_tiles = recon.get_player_city_tiles(opponent)
-    my_units = recon.get_player_unit_tiles(me)
-    opponent_units = recon.get_player_unit_tiles(opponent)
-    clusters = recon.detect_clusters(game_state, my_city_tiles, opponent_city_tiles, my_units, opponent_units)
-    my_units_in_clusters_count = 0
+    my_units = recon.get_player_unit_positions(me)  # pos = [unit]
+    opponent_units = recon.get_player_unit_positions(opponent)
+    clusters = recon.detect_clusters(game_state, my_city_tiles, opponent_city_tiles, my_units, opponent_units)  # id = cluster
+    my_free_units = agent_extensions.get_free_units(my_units, clusters)
+    remaining_units_allowance = agent_extensions.get_remaining_units_allowance(clusters, my_city_tiles, my_free_units)
 
-    if game_state.turn > 360:
-        print('turn overflow')
+    # CALCULATE CLUSTERS EXPORT POSITIONS
 
-    # Recon free units
-    free_units = set(my_units.keys())
-    free_clusters = []
-    for cluster_id, c in clusters.items():
-        for pos, info in c.cell_infos.items():
-            units_count = len(info.my_units)
-            my_units_in_clusters_count += units_count
-            if units_count > 0:
-                free_units.remove(pos)
-    remaining_units_allowance = len(my_city_tiles) - my_units_in_clusters_count - len(free_units)
-    for cluster_id, c in clusters.items():
-        if not c.is_me_present:
-            free_clusters.append(c)
-
-    # Send free units to empty cities
-    for free_unit in free_units:
-        if my_units[free_unit][0].can_act():
-            if free_clusters:
-                min_distance_cluster, min_distance_pos = recon.get_closest_cluster(free_unit, free_clusters)
-                direction = extensions.get_directions_to_target(free_unit, min_distance_pos)
-                actions.append(my_units[free_unit][0].move(direction))
-                free_clusters.remove(min_distance_cluster)
-            else:
-                print('todo: free unit has nowhere to go')
-                # TODO: free unit has nowhere to go.
-
-    # Develop clusters. Export units for empty cities not served by free units
-    researched = 0
     developing_clusters = [c for c in clusters.values() if c.is_me_present]
-    for developing_cluster in developing_clusters:
+    agent_extensions.set_developing_clusters_export_positions(developing_clusters, game_state.map_width)
 
-        developing_cluster.accessible_positions, developing_cluster.export_positions = cluster_extensions.get_accessible_and_export_positions(developing_cluster, game_state.map_width)
-        export_positions = []
-        export_units_count = 0
-        if free_clusters:
-            best_free_cluster_score = math.inf
-            taken_free_cluster = None
-            best_export_positions = []
-            for free_cluster in free_clusters:
-                export_positions = recon.get_cluster_export_positions_for_free_cluster(
-                    free_cluster=free_cluster,
-                    exporting_cluster=developing_cluster,
-                    w=game_state.map_width)
-                if export_positions:
-                    cluster_score = export_positions[0][1]
-                    if cluster_score < best_free_cluster_score:
-                        best_free_cluster_score = cluster_score
-                        taken_free_cluster = free_cluster
-                        best_export_positions = export_positions
-            free_clusters.remove(taken_free_cluster)
-            export_positions = []
-            for i in range(int(len(best_export_positions) / 4 + 1)):
-                export_positions.append(best_export_positions[i][0])
-            # export_positions = [ep[0] for ep in best_export_positions]
-            export_units_count = 1
-        development_result = develop_cluster.develop_cluster(
-            developing_cluster,
-            cluster.ClusterDevelopmentSettings(
-                turn=game_state.turn,
-                units_build_allowance=remaining_units_allowance,
-                units_export_positions=export_positions,
-                research_level=me.research_points+researched,
-                width=game_state.map_width),
-            game_state)
-        if 0 >= remaining_units_allowance != development_result[1]:
-            print('fixme: units allowance changed when building was not permitted.')
-        remaining_units_allowance = development_result[1]
-        actions += development_result[0]
-        researched += development_result[2]
+    # IDENTIFY AND PRIORITIZE FREE CLUSTERS
+
+    free_clusters = [c for c in clusters.values() if not c.is_me_present]
+    scores_clusters = agent_extensions.prioritize_clusters_for_development(
+        clusters,
+        extensions.get_mined_resource(me.research_points))  # [(score, cluster)]
+
+    # SEND FREE UNITS TO CLUSTERS
+
+    blocked_positions = []
+    cannot_act_units_ids = []
+
+    a, b, c, unmoved_units = agent_actions.send_free_units_to_empty_clusters(
+        my_free_units,
+        scores_clusters,
+        my_units,
+        game_state.turn,
+        blocked_positions,
+        cannot_act_units_ids)
+
+    actions += a
+    blocked_positions += b
+    cannot_act_units_ids += c
+
+    # CALCULATE EXPORT REQUESTS FOR DEVELOPING CLUSTERS
+
+    mined_resource = extensions.get_mined_resource(me.research_points)
+    clusters_export_requirements = agent_extensions.assign_clusters_for_export(
+        developing_clusters,
+        free_clusters,
+        mined_resource,
+        game_state.turn)
+
+    # DEVELOP CLUSTERS
+
+    a, remaining_units_allowance = agent_actions.develop_clusters(
+        developing_clusters,
+        clusters_export_requirements,
+        remaining_units_allowance,
+        me.research_points,
+        game_state)
+
+    actions += a
+
     # you can add debug annotations using the functions in the annotate object
     # actions.append(annotate.circle(0, 0))
 

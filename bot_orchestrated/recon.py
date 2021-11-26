@@ -15,14 +15,14 @@ def get_player_city_tiles(player):
     return player_city_tiles
 
 
-def get_player_unit_tiles(player: Player):
-    player_worker_tiles = dict()
+def get_player_unit_positions(player: Player):
+    player_worker_positions = dict()
     for unit in player.units:
-        if unit.pos in player_worker_tiles:
-            player_worker_tiles[unit.pos].append(unit)
+        if unit.pos in player_worker_positions:
+            player_worker_positions[unit.pos].append(unit)
         else:
-            player_worker_tiles[unit.pos] = [unit]
-    return player_worker_tiles
+            player_worker_positions[unit.pos] = [unit]
+    return player_worker_positions
 
 
 def detect_clusters(game_state, my_city_tiles, opponent_city_tiles, my_units, opponent_units):
@@ -83,16 +83,16 @@ def get_closest_cluster(position: Position, clusters: [Cluster]):
                 min_distance_pos = pos
     return min_distance_cluster, min_distance_pos
 
-
-def get_cluster_export_positions_for_free_cluster(free_cluster: Cluster, exporting_cluster: Cluster, w):
-    cluster_export_positions = exporting_cluster.export_positions
-    export_positions_scores = []
-    for export_position in cluster_export_positions:
-        min_distance = math.inf
-        for pos in free_cluster.cell_infos:
-            distance = pos.distance_to(export_position)
-            if distance < min_distance:
-                min_distance = distance
-        export_positions_scores.append((export_position, min_distance))
-    export_positions_scores.sort(key=lambda x: x[1])
-    return export_positions_scores
+#
+# def get_cluster_export_positions_for_free_cluster(free_cluster: Cluster, exporting_cluster: Cluster, w):
+#     cluster_export_positions = exporting_cluster.export_positions
+#     export_positions_scores = []
+#     for export_position in cluster_export_positions:
+#         min_distance = math.inf
+#         for pos in free_cluster.cell_infos:
+#             distance = pos.distance_to(export_position)
+#             if distance < min_distance:
+#                 min_distance = distance
+#         export_positions_scores.append((export_position, min_distance))
+#     export_positions_scores.sort(key=lambda x: x[1])
+#     return export_positions_scores
