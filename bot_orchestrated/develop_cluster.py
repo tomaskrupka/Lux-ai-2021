@@ -31,8 +31,8 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # todo: put opponent cities into blocked positions
 
-    # if game_state.turn == 70:
-    #     print('turn is 70')
+    # if game_state.turn == 18:
+    #     print('turn is 18')
 
     # CITY TILE ACTIONS
 
@@ -110,10 +110,11 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
         # IF SOME UNITS ON RESOURCES COULD NOT MOVE, PULL THEM BACK TO CITY
 
-        if not night_mode:
-            a, c = dca.pull_units_to_cities(cluster, cities_scores, cannot_act_units_ids)
-            actions += a
-            cannot_act_units_ids += c
+        # todo: this pulls units not only from cities, but also those from perimeter that should stay and mine. replace this and stepping within resources with properly directing units somewhere desirable.
+        # if not night_mode:
+        #     a, c = dca.pull_units_to_cities(cluster, cities_scores, cannot_act_units_ids)
+        #     actions += a
+        #     cannot_act_units_ids += c
 
     # STEP OUT OF CITIES INTO MINING POSITIONS
 

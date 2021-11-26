@@ -70,6 +70,9 @@ def step_within_cities_into_better_mining_positions(
                 max_mineability = mineability
 
         for pos in cities_mineabilities[city_id]:
+            # todo: only move one unit. Turns out that the mining limit for resources is cumulative.
+            if a:
+                break  # only move one unit into better mining position.
             if cluster.cell_infos[pos].my_units:
                 can_act_units_on_pos = [u for u in cluster.cell_infos[pos].my_units if u.id not in cannot_act_units_ids]
                 if can_act_units_on_pos:
@@ -102,10 +105,10 @@ def build_city_tiles(cluster, units_taken_actions_ids):
     for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.is_empty and cell_info.my_units:
             unit = cell_info.my_units[0]
-            b.append(cell_pos)
             if unit.can_act() and unit.get_cargo_space_left() == 0 and unit.id not in units_taken_actions_ids:
-                c.append(unit.id)
                 a.append(unit.build_city())
+                b.append(cell_pos)
+                c.append(unit.id)
     return a, b, c
 
 
