@@ -17,18 +17,18 @@ def send_free_units_to_empty_clusters(
     c = []
     not_moved_units_positions = set(free_units_positions)
     clusters_ids_units = dict()  # cluster_id = count of units going there
-    for score, cluster in scores_clusters:
-        clusters_ids_units[cluster.id] = 0
+    for score, free_cluster in scores_clusters:
+        clusters_ids_units[free_cluster.cluster_id] = 0
 
     for free_unit_position in free_units_positions:
         unit: Unit
         unit = my_units_dict[free_unit_position][0]
         max_units_per_cluster = min(clusters_ids_units.values()) + 2
         if unit.id not in cannot_act_units_ids:
-            # choose the highest ranking cluster that you can make it to.
-            for score, cluster in scores_clusters:
-                if max_units_per_cluster < clusters_ids_units[cluster.id]:
-                    distance, perimeter_position = extensions.get_distance_position_to_cluster(free_unit_position, cluster)
+            # choose the highest ranking free_cluster that you can make it to.
+            for score, free_cluster in scores_clusters:
+                if max_units_per_cluster > clusters_ids_units[free_cluster.cluster_id]:
+                    distance, perimeter_position = extensions.get_distance_position_to_cluster(free_unit_position, free_cluster)
                     unit_range = extensions.get_unit_range(100 - unit.get_cargo_space_left(), turn)
                     if distance < unit_range:
                         directions = extensions.get_all_directions_to_target(free_unit_position, perimeter_position)
@@ -38,12 +38,13 @@ def send_free_units_to_empty_clusters(
                             if new_pos not in blocked_positions:
                                 free_directions.append((direction, new_pos))
                         if free_directions:
-                            direction = free_directions[0][0] if len(free_directions) == 1 else free_directions[turn % 2][0]
+                            direction = free_directions[0] if len(free_directions) == 1 else free_directions[turn % 2]
                             a.append(unit.move(direction[0]))
                             b.append(direction[1])
                             c.append(unit.id)
                             not_moved_units_positions.remove(free_unit_position)
-                            clusters_ids_units[cluster.id] += 1
+                            clusters_ids_units[free_cluster.cluster_id] += 1
+                            break
     return a, b, c, not_moved_units_positions, clusters_ids_units
 
 

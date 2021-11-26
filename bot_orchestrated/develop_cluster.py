@@ -31,6 +31,9 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # todo: put opponent cities into blocked positions
 
+    # if game_state.turn == 70:
+    #     print('turn is 70')
+
     # CITY TILE ACTIONS
 
     a, units_allowance, units_surplus, researched = dca.build_workers_or_research(

@@ -11,6 +11,7 @@ if __package__ == "":
     import develop_cluster
     import cluster_extensions
     import agent_extensions
+    import agent_actions
 
 else:
     # for CLI tool
@@ -68,9 +69,12 @@ def agent(observation, configuration):
     # SEND FREE UNITS TO CLUSTERS
 
     blocked_positions = []
-    cannot_act_units_ids = []
+    cannot_act_units_ids = agent_extensions.get_cannot_act_units_ids(my_units)
+    #
+    # if game_state.turn == 23:
+    #     print('turn is 23')
 
-    a, b, c, unmoved_units = agent_actions.send_free_units_to_empty_clusters(
+    a, b, c, unmoved_units, clusters_ids_units = agent_actions.send_free_units_to_empty_clusters(
         my_free_units,
         scores_clusters,
         my_units,
@@ -83,6 +87,8 @@ def agent(observation, configuration):
     cannot_act_units_ids += c
 
     # CALCULATE EXPORT REQUESTS FOR DEVELOPING CLUSTERS
+
+    # todo: calculate with clusters_ids_units (free units that are already on their way)
 
     mined_resource = extensions.get_mined_resource(me.research_points)
     clusters_export_requirements = agent_extensions.assign_clusters_for_export(

@@ -10,12 +10,13 @@ def assign_clusters_for_export(developing_clusters, free_clusters, mined_resourc
     developing_cluster: Cluster
     empty_unit_range = extensions.get_unit_range(0, turn)
     developing_clusters_export_requirements = dict()
+    for developing_cluster in developing_clusters:
+        developing_clusters_export_requirements[developing_cluster.cluster_id] = set()
     for free_cluster in free_clusters:
         min_dist = math.inf
         serving_cluster = None
         source_pos = None
         for developing_cluster in developing_clusters:
-            developing_clusters_export_requirements[developing_cluster.cluster_id] = set()
             dist, source, target = get_dist_source_target_for_export(developing_cluster, free_cluster, mined_resource)
             if dist < min_dist and dist < empty_unit_range:
                 min_dist = dist
@@ -35,6 +36,7 @@ def get_dist_source_target_for_export(source_cluster: Cluster, target_cluster: C
             if ce.can_mine_on_position(target_cluster, target_pos, mined_resource):
                 distance = target_pos.distance_to(source_pos)
                 if distance < min_dist:
+                    min_dist = distance
                     min_dist_source_pos = source_pos
                     min_dist_target_pos = target_pos
     return min_dist, min_dist_source_pos, min_dist_target_pos
@@ -53,7 +55,7 @@ def get_free_units(my_units_positions, clusters):
     free_units = set(my_units_positions)
     for cluster_id, c in clusters.items():
         if c.is_me_present:
-            for pos, info in c.cell_infos.values():
+            for pos, info in c.cell_infos.items():
                 if info.my_units:
                     free_units.remove(pos)
     return free_units
@@ -62,7 +64,7 @@ def get_free_units(my_units_positions, clusters):
 def prioritize_clusters_for_development(free_clusters, mined_resource):
     scores_clusters = []
     cluster: Cluster
-    for cluster in free_clusters:
+    for cluster in free_clusters.values():
         cluster_score = cluster.resource_amounts_total['wood']
         if mined_resource != 'wood':
             cluster_score += cluster.resource_amounts_total['coal']
@@ -85,3 +87,12 @@ def set_developing_clusters_export_positions(developing_clusters, width):
 def get_remaining_units_allowance(ids_clusters, my_city_tiles, my_free_units):
     my_units_in_clusters_count = get_my_units_in_clusters(ids_clusters)
     return len(my_city_tiles) - my_units_in_clusters_count - len(my_free_units)
+
+
+def get_cannot_act_units_ids(my_units_dict):
+    c = []
+    for pos, my_units in my_units_dict.items():
+        for my_unit in my_units:
+            if not my_unit.can_act():
+                c.append(my_unit.id)
+    return c

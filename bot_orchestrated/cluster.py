@@ -83,7 +83,7 @@ class Cluster:
             )
 
             self.cell_infos[p] = cell_info
-            if cell_info.my_city_tile:
+            if cell_info.my_city_tile or cell_info.my_units:
                 self.is_me_present = True
             if cell_info.opponent_city_tile or cell_info.opponent_units:
                 self.is_opponent_present = True

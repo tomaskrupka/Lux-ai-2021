@@ -1,6 +1,5 @@
 import math
 
-from cluster import Cluster
 from lux.game import Game
 from lux.game_map import Position
 
@@ -90,7 +89,7 @@ def get_unit_range(cargo, turn):
     return int((days_to_night + cargo / 4) / 2)
 
 
-def get_distance_position_to_cluster(position, cluster: Cluster):
+def get_distance_position_to_cluster(position, cluster):
     min_distance = math.inf
     min_distance_pos = None
     for perimeter_pos in cluster.perimeter:
