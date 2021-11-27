@@ -1,5 +1,6 @@
 import copy
 import math
+import time
 
 import develop_cluster_actions as dca
 import cluster_extensions as ce
@@ -13,6 +14,7 @@ from lux.game_map import Position
 # TODO: moved units out of each method. -> a, b, m, then input into the next one.
 
 def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevelopmentSettings, game_state: Game):
+
     actions = []  # To submit to the agent.
     units_allowance: int  # How many units can other clusters build.
     units_surplus: int  # Units needed in this cluster - units_export_count.
@@ -38,15 +40,15 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     cannot_act_units_ids += c
     b = ce.get_opponent_city_tiles(cluster)
     blocked_positions += b
-
-    # if game_state.turn == 5:
+    #
+    # if game_state.turn == 16:
     #     print('my turn')
 
     # CITY TILE ACTIONS
 
-    # todo: temporary setting units_to_push_out = 1 here. This makes cluster build 1 unit more past unit_surplus == 0
+    # todo: temporary setting units_to_push_out = 2 here. This makes cluster build 2 unit more past unit_surplus == 0
     a, units_allowance, units_surplus, researched = dca.build_workers_or_research(
-        cluster, cluster_development_settings, 0)
+        cluster, cluster_development_settings, 2)
     actions += a
 
     # BUILD CITY TILES
@@ -107,6 +109,12 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     blocked_positions += b
     cannot_act_units_ids += c
 
+    # STEP OUT OF RESOURCES INTO CITIES WITH UNITS THAT HAVE FULL CARGO
+
+    # a, c = dca.step_out_of_resources_into_cities_with_full_cargo_units(cluster, cannot_act_units_ids, cities_scores)
+    # actions += a
+    # cannot_act_units_ids += c
+
     # STEP WITHIN RESOURCES IF STEP OUT WAS UNSUCCESSFUL
 
     blocked_positions_now = ce.get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids)
@@ -116,7 +124,8 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
             unmoved_units_on_resource,
             cluster,
             cluster_development_settings,
-            blocked_positions_now)
+            blocked_positions_now,
+            cannot_act_units_ids)
         actions += a
         blocked_positions += b
         cannot_act_units_ids += c
@@ -143,9 +152,15 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     # MOVE WITHIN CITIES INTO BETTER MINING POSITIONS
 
     if night_mode:
-        a, c = dca.step_within_cities_into_better_mining_positions(cities_mineabilities, cluster, cannot_act_units_ids)
+        a, c = dca.step_within_cities_into_better_mining_positions(cities_mineabilities, cluster,
+                                                                   cannot_act_units_ids)
         actions += a
         cannot_act_units_ids += c
+    #
+    # end = time.time()
+    # elapsed = (end - start) * 1000
+    # if elapsed > 1000:
+    #     print(elapsed)
 
-    actions_allowance = [actions, units_allowance, researched]
-    return actions_allowance
+    return [actions, units_allowance, researched]
+

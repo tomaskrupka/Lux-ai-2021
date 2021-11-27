@@ -11,7 +11,7 @@ def get_units_needed_for_maintenance(c: Cluster):
             has_units_count += len(cell_info.my_units)
         # if cell_info.my_city_tile or cell_info.resource:
         #     serviceable_positions += 1
-    optimal_units_count = len(c.cell_infos) / 8
+    optimal_units_count = min(len(c.cell_infos) / 8, len(c.resource_positions))
     return optimal_units_count, has_units_count
 
 
@@ -195,3 +195,4 @@ def get_opponent_city_tiles(cluster: Cluster):
         if info.opponent_city_tile:
             b.append(pos)
     return b
+
