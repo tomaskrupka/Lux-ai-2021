@@ -61,10 +61,19 @@ def get_free_units(my_units_positions, clusters):
     return free_units
 
 
-def prioritize_clusters_for_development(free_clusters, mined_resource):
+def get_free_clusters(all_clusters_dict):
+    free_clusters = dict()
+    for cluster_id, cluster in all_clusters_dict.items():
+        if not cluster.is_me_present:
+            free_clusters[cluster_id] = cluster
+    return free_clusters
+
+
+def prioritize_all_clusters_for_development(clusters, mined_resource):
+    free_clusters_dict = get_free_clusters(clusters)
     scores_clusters = []
     cluster: Cluster
-    for cluster in free_clusters.values():
+    for cluster in free_clusters_dict.values():
         cluster_score = cluster.resource_amounts_total['wood']
         if mined_resource != 'wood':
             cluster_score += cluster.resource_amounts_total['coal']

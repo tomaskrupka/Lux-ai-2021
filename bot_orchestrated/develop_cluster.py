@@ -5,6 +5,7 @@ import develop_cluster_actions as dca
 import cluster_extensions as ce
 import extensions
 from cluster import Cluster, ClusterDevelopmentSettings
+from lux import annotate
 from lux.game import Game
 from lux.game_map import Position
 
@@ -25,14 +26,21 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     cities, cities_scores, cities_mineabilities = ce.get_cities_scores_mineability(cluster, cluster_development_settings.mined_resource)
 
-    b, c = ce.get_cannot_act_units(cluster)  # init with units with cooldown
+    # HIGHLIGHT EXPORT SETTINGS
+
+    for pos in cluster_development_settings.units_export_positions:
+        actions.append(annotate.circle(pos.x, pos.y))
+
+    # RECON BLOCKED POSITIONS
+
+    b, c = ce.get_cannot_act_units(cluster)  # units with cooldown
     blocked_positions += b
     cannot_act_units_ids += c
+    b = ce.get_opponent_city_tiles(cluster)
+    blocked_positions += b
 
-    # todo: put opponent cities into blocked positions
-
-    # if game_state.turn == 18:
-    #     print('turn is 18')
+    # if game_state.turn == 48:
+    #     print('my turn')
 
     # CITY TILE ACTIONS
 
@@ -98,12 +106,14 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # STEP WITHIN RESOURCES IF STEP OUT WAS UNSUCCESSFUL
 
+    blocked_positions_now = ce.get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids)
+
     if unmoved_units_on_resource:
         a, b, c, units_on_resource = dca.step_within_resources(
             unmoved_units_on_resource,
             cluster,
             cluster_development_settings,
-            blocked_positions)
+            blocked_positions_now)
         actions += a
         blocked_positions += b
         cannot_act_units_ids += c

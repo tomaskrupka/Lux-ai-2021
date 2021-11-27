@@ -324,6 +324,8 @@ def push_out_from_cities(
 def step_out_of_cities_into_mining(cluster, cluster_development_settings, blocked_positions, cannot_act_units_ids):
     positions_options = []
 
+    blocked_positions_now = cluster_extensions.get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids)
+
     for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.my_city_tile and cell_info.my_units:
             # free adjacent mining positions
@@ -334,7 +336,7 @@ def step_out_of_cities_into_mining(cluster, cluster_development_settings, blocke
                                     cluster_development_settings.mined_resource) if
                                 not cluster.cell_infos[p].my_city_tile and
                                 not cluster.cell_infos[p].opponent_city_tile and
-                                p not in blocked_positions]
+                                p not in blocked_positions_now]
             if len(cell_pos_options) > 0:
                 for unit in cell_info.my_units:
                     if unit.id not in cannot_act_units_ids:

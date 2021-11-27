@@ -54,6 +54,9 @@ def agent(observation, configuration):
     my_free_units = agent_extensions.get_free_units(my_units, clusters)
     remaining_units_allowance = agent_extensions.get_remaining_units_allowance(clusters, my_city_tiles, my_free_units)
 
+    # if game_state.turn == 49:
+    #     print('my turn')
+
     # CALCULATE CLUSTERS EXPORT POSITIONS
 
     developing_clusters = [c for c in clusters.values() if c.is_me_present]
@@ -61,30 +64,27 @@ def agent(observation, configuration):
 
     # IDENTIFY AND PRIORITIZE FREE CLUSTERS
 
-    free_clusters = [c for c in clusters.values() if not c.is_me_present]
-    scores_clusters = agent_extensions.prioritize_clusters_for_development(
+    scores_free_clusters = agent_extensions.prioritize_all_clusters_for_development(
         clusters,
         extensions.get_mined_resource(me.research_points))  # [(score, cluster)]
+    free_clusters = [c for s, c in scores_free_clusters]
 
     # SEND FREE UNITS TO CLUSTERS
 
-    blocked_positions = []
-    cannot_act_units_ids = agent_extensions.get_cannot_act_units_ids(my_units)
-    #
-    # if game_state.turn == 23:
-    #     print('turn is 23')
+    if free_clusters:
+        blocked_positions = []
+        cannot_act_units_ids = agent_extensions.get_cannot_act_units_ids(my_units)
+        a, b, c, unmoved_units, clusters_ids_units = agent_actions.send_free_units_to_empty_clusters(
+            my_free_units,
+            scores_free_clusters,
+            my_units,
+            game_state.turn,
+            blocked_positions,
+            cannot_act_units_ids)
 
-    a, b, c, unmoved_units, clusters_ids_units = agent_actions.send_free_units_to_empty_clusters(
-        my_free_units,
-        scores_clusters,
-        my_units,
-        game_state.turn,
-        blocked_positions,
-        cannot_act_units_ids)
-
-    actions += a
-    blocked_positions += b
-    cannot_act_units_ids += c
+        actions += a
+        blocked_positions += b
+        cannot_act_units_ids += c
 
     # CALCULATE EXPORT REQUESTS FOR DEVELOPING CLUSTERS
 

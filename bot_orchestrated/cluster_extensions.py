@@ -187,3 +187,11 @@ def get_cities_scores_mineability(cluster: Cluster, mined_resource):
         cities_mineabilities[city_id] = city_mineability
         cities_scores[city_id] = city_score
     return cities, cities_scores, cities_mineabilities
+
+
+def get_opponent_city_tiles(cluster: Cluster):
+    b = []
+    for pos, info in cluster.cell_infos.items():
+        if info.opponent_city_tile:
+            b.append(pos)
+    return b
