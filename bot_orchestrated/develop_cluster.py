@@ -39,13 +39,14 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     b = ce.get_opponent_city_tiles(cluster)
     blocked_positions += b
 
-    # if game_state.turn == 48:
+    # if game_state.turn == 5:
     #     print('my turn')
 
     # CITY TILE ACTIONS
 
+    # todo: temporary setting units_to_push_out = 1 here. This makes cluster build 1 unit more past unit_surplus == 0
     a, units_allowance, units_surplus, researched = dca.build_workers_or_research(
-        cluster, cluster_development_settings)
+        cluster, cluster_development_settings, 0)
     actions += a
 
     # BUILD CITY TILES
@@ -65,21 +66,23 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     to_push_out_count = units_surplus
 
     if not night_mode:
-        a, b, c, satisfied_export_positions = dca.export_units(cluster, cluster_development_settings, to_push_out_count,
-                                                               blocked_positions, cannot_act_units_ids, push_out_units)
+        a, b, c, satisfied_export_positions, remains_to_push_out = dca.export_units(
+            cluster,
+            cluster_development_settings,
+            to_push_out_count,
+            blocked_positions,
+            cannot_act_units_ids,
+            push_out_units)
         actions += a
         blocked_positions += b
         cannot_act_units_ids += c
 
-    # PUSH OUT
-
-    if not night_mode:
-        to_push_out_count_remaining = to_push_out_count - len(c)
+        # PUSH OUT
 
         a, b, c = dca.push_out_from_anywhere(
             cluster,
             blocked_positions,
-            to_push_out_count_remaining,
+            remains_to_push_out,
             push_out_positions,
             cannot_act_units_ids)
 

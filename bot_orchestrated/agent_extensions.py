@@ -15,31 +15,34 @@ def assign_clusters_for_export(developing_clusters, free_clusters, mined_resourc
     for free_cluster in free_clusters:
         min_dist = math.inf
         serving_cluster = None
-        source_pos = None
+        min_dist_sources = []
         for developing_cluster in developing_clusters:
-            dist, source, target = get_dist_source_target_for_export(developing_cluster, free_cluster, mined_resource)
+            dist, sources = get_dist_sources_for_export(developing_cluster, free_cluster, mined_resource)
+            if dist < min_dist:
+                min_dist_sources = []
             if dist < min_dist and dist < empty_unit_range:
                 min_dist = dist
                 serving_cluster = developing_cluster
-                source_pos = source
+                min_dist_sources = sources
         if serving_cluster is not None:
-            developing_clusters_export_requirements[serving_cluster.cluster_id].add(source_pos)
+            for source in min_dist_sources:
+                developing_clusters_export_requirements[serving_cluster.cluster_id].add(source)
     return developing_clusters_export_requirements
 
 
-def get_dist_source_target_for_export(source_cluster: Cluster, target_cluster: Cluster, mined_resource):
+def get_dist_sources_for_export(source_cluster: Cluster, target_cluster: Cluster, mined_resource):
     min_dist = math.inf
-    min_dist_source_pos = None
-    min_dist_target_pos = None
+    min_dist_sources = []
     for source_pos in source_cluster.reachable_export_positions:
         for target_pos in target_cluster.perimeter:
             if ce.can_mine_on_position(target_cluster, target_pos, mined_resource):
                 distance = target_pos.distance_to(source_pos)
                 if distance < min_dist:
+                    min_dist_sources = []
+                if distance <= min_dist:
                     min_dist = distance
-                    min_dist_source_pos = source_pos
-                    min_dist_target_pos = target_pos
-    return min_dist, min_dist_source_pos, min_dist_target_pos
+                    min_dist_sources.append(source_pos)
+    return min_dist, min_dist_sources
 
 
 def get_my_units_in_clusters(clusters):

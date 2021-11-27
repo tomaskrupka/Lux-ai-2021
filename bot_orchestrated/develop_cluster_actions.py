@@ -7,11 +7,11 @@ from churn import solve_churn_with_score, get_move_actions_with_blocks
 from lux.game_objects import Unit
 
 
-def build_workers_or_research(cluster, cluster_development_settings):
+def build_workers_or_research(cluster, cluster_development_settings, units_to_push_out):
     units_allowance = cluster_development_settings.units_build_allowance
     researched = 0  # Prevent researching past 200 here and in other clusters
     units_needed, has_units = cluster_extensions.get_units_needed_for_maintenance(cluster)
-    units_surplus = has_units - units_needed
+    units_surplus = has_units - units_needed - units_to_push_out
     units_surplus_balance = units_surplus
     a = []
     for city_cell in [cell_info for cell_coords, cell_info in cluster.cell_infos.items() if cell_info.my_city_tile]:
@@ -23,7 +23,7 @@ def build_workers_or_research(cluster, cluster_development_settings):
             elif cluster_development_settings.research_level + researched < 200:
                 a.append(city_cell.my_city_tile.research())
                 researched += 1
-    return a, units_allowance, units_surplus, researched
+    return a, units_allowance, units_surplus_balance, researched
 
 
 def pull_units_to_cities(cluster: Cluster, cities_scores, cannot_act_units_ids):
@@ -61,40 +61,51 @@ def step_within_cities_into_better_mining_positions(
     a = []
     c = []
     for city_id in cities_mineabilities:
-        # find best mining position
-        max_mineability = -math.inf
-        best_mining_pos = None
-        for pos, mineability in cities_mineabilities[city_id].items():
-            if mineability > max_mineability:
-                best_mining_pos = pos
-                max_mineability = mineability
+        top_positions = list(cities_mineabilities[city_id].items())
+        top_positions.sort(key=lambda x: x[1], reverse=True)
 
+        units_in_city_count = 0
+        positions_units = dict()
         for pos in cities_mineabilities[city_id]:
-            # todo: only move one unit. Turns out that the mining limit for resources is cumulative.
-            if a:
-                break  # only move one unit into better mining position.
-            if cluster.cell_infos[pos].my_units:
-                can_act_units_on_pos = [u for u in cluster.cell_infos[pos].my_units if u.id not in cannot_act_units_ids]
-                if can_act_units_on_pos:
-                    units_moved = False
-                    all_directions = extensions.get_all_directions_to_target(pos, best_mining_pos)
-                    for direction in all_directions:
-                        if direction != 'c':
-                            new_pos = extensions.get_new_position(pos, direction)
-                            if new_pos in cities_mineabilities[city_id]:
-                                for unit in can_act_units_on_pos:
+            units = cluster.cell_infos[pos].my_units
+            if units:
+                units_in_city_count += len(units)
+                positions_units[pos] = units
+
+        do_not_use_units_ids = []
+        for mining_pos, mineability in top_positions:
+            if units_in_city_count == len(do_not_use_units_ids):
+                break
+
+            # If there is an unused unit, use it and continue to next mining pos.
+            units = cluster.cell_infos[mining_pos].my_units
+            if units:
+                free_unit = next((u for u in units if u.id not in do_not_use_units_ids), None)
+                if free_unit is not None:
+                    do_not_use_units_ids.append(free_unit.id)
+                    continue
+            else:
+                # Find closest free unit to pull
+                for unit_pos, units in positions_units.items():
+                    mining_pos_served = False
+                    for unit in units:
+                        if unit.id not in cannot_act_units_ids and unit.id not in do_not_use_units_ids:
+                            all_directions = extensions.get_all_directions_to_target(unit_pos, mining_pos)
+                            for direction in all_directions:
+                                # We know it's a different position. This position does not have free units.
+                                if direction == 'c':
+                                    print('fix me plz')
+                                new_pos = extensions.get_new_position(unit_pos, direction)
+                                if new_pos in cities_mineabilities[city_id]:
                                     a.append(unit.move(direction))
                                     c.append(unit.id)
-                                units_moved = True
-                                break
-                    if not units_moved:
-                        adjacent_positions = cluster_extensions.get_adjacent_positions_within_cluster(pos, cluster)
-                        for adj_pos in adjacent_positions:
-                            if adj_pos in cities_mineabilities[city_id] and cities_mineabilities[city_id][adj_pos] > cities_mineabilities[city_id][pos]:
-                                for unit in can_act_units_on_pos:
-                                    direction = extensions.get_directions_to_target(pos, adj_pos)
-                                    a.append(unit.move(direction))
-                                    c.append(unit.id)
+                                    do_not_use_units_ids.append(unit.id)
+                                    mining_pos_served = True
+                                    break
+                        if mining_pos_served:
+                            break
+                    if mining_pos_served:
+                        break
     return a, c
 
 
@@ -229,11 +240,12 @@ def export_units(cluster,
     b = []
     c = []
     satisfied_export_positions = []
+    remains_to_push_out = units_to_push_out
 
     pushed_out_units_positions = []
     # For each export pos try to export any push-out unit
     for export_pos in cluster_development_settings.units_export_positions:
-        if units_to_push_out <= 0:
+        if remains_to_push_out <= 0:
             break
         if export_pos in blocked_positions:
             continue
@@ -249,10 +261,10 @@ def export_units(cluster,
                     satisfied_export_positions.append(export_pos)
 
                 # Count as pushed even if could not act. Otherwise another unit would be pushed out of city to fulfill this.
-                units_to_push_out -= 1
+                remains_to_push_out -= 1
                 break
 
-    return a, b, c, satisfied_export_positions
+    return a, b, c, satisfied_export_positions, remains_to_push_out
 
 
 def push_out_from_anywhere(
