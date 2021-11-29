@@ -102,9 +102,6 @@ def step_within_cities_into_better_mining_positions(
                         if unit.id not in cannot_act_units_ids and unit.id not in do_not_use_units_ids:
                             all_directions = extensions.get_all_directions_to_target(unit_pos, mining_pos)
                             for direction in all_directions:
-                                # We know it's a different position. This position does not have free units.
-                                if direction == 'c':
-                                    print('fix me plz')
                                 new_pos = extensions.get_new_position(unit_pos, direction)
                                 if new_pos in cities_mineabilities[city_id]:
                                     a.append(unit.move(direction))
@@ -119,7 +116,23 @@ def step_within_cities_into_better_mining_positions(
     return a, c
 
 
-def build_city_tiles(cluster, cannot_act_units_ids, turn):
+def build_city_tiles(cluster, units_taken_actions_ids):
+    a = []
+    b = []
+    c = []
+    for cell_pos, cell_info in cluster.cell_infos.items():
+        if cell_info.is_empty and cell_info.my_units:
+            unit = cell_info.my_units[0]
+            if unit.can_act() and unit.get_cargo_space_left() == 0 and unit.id not in units_taken_actions_ids:
+                a.append(unit.build_city())
+                b.append(cell_pos)
+                c.append(unit.id)
+    return a, b, c
+
+
+
+# TODO : look past two.
+def build_city_tiles_or_refuel(cluster, cannot_act_units_ids, turn):
     a = []
     b = []
     c = []

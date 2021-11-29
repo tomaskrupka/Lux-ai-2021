@@ -50,13 +50,18 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
         cluster, cluster_development_settings, 2)
     actions += a
 
-    # BUILD CITY TILES REFUEL CITIES FROM UNITS WITH NON-WOOD CARGO INSTEAD OF BUILDING
+    # BUILD CITY TILES OR REFUEL CITIES FROM UNITS WITH NON-WOOD CARGO INSTEAD OF BUILDING
     # TODO: exclude units coming to the city with resources.
 
-    a, b, c = dca.build_city_tiles(cluster, cannot_act_units_ids, cluster_development_settings.turn)
+    a, b, c = dca.build_city_tiles(cluster, cannot_act_units_ids)
     actions += a
     blocked_positions += b
     cannot_act_units_ids += c
+    #
+    # a, b, c = dca.build_city_tiles_or_refuel(cluster, cannot_act_units_ids, cluster_development_settings.turn)
+    # actions += a
+    # blocked_positions += b
+    # cannot_act_units_ids += c
 
     # EXPORT UNITS FROM PUSH OUT POSITIONS
 
