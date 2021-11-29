@@ -2,6 +2,7 @@ import math
 
 from lux.game import Game
 from lux.game_map import Position
+from lux.game_objects import City
 
 
 def get_adjacent_positions(p: Position, w):
@@ -98,3 +99,13 @@ def get_distance_position_to_cluster(position, cluster):
             min_distance = distance
             min_distance_pos = perimeter_pos
     return min_distance, min_distance_pos
+
+
+def get_nights_remaining(turn):
+    this_turn_remaining_nights = min(10, 40 - (turn % 40))
+    turns_remaining = int((360 - turn) / 40)
+    return this_turn_remaining_nights + 10 * turns_remaining
+
+
+def get_fuel_remaining_to_survival(city: City, turn):
+    return city.get_light_upkeep() * get_nights_remaining(turn) - city.fuel

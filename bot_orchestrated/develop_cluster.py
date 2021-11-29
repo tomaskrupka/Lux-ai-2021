@@ -46,15 +46,14 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # CITY TILE ACTIONS
 
-    # todo: temporary setting units_to_push_out = 2 here. This makes cluster build 2 unit more past unit_surplus == 0
     a, units_allowance, units_surplus, researched = dca.build_workers_or_research(
         cluster, cluster_development_settings, 2)
     actions += a
 
-    # BUILD CITY TILES
+    # BUILD CITY TILES REFUEL CITIES FROM UNITS WITH NON-WOOD CARGO INSTEAD OF BUILDING
     # TODO: exclude units coming to the city with resources.
 
-    a, b, c = dca.build_city_tiles(cluster, cannot_act_units_ids)
+    a, b, c = dca.build_city_tiles(cluster, cannot_act_units_ids, cluster_development_settings.turn)
     actions += a
     blocked_positions += b
     cannot_act_units_ids += c
@@ -161,6 +160,18 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     # elapsed = (end - start) * 1000
     # if elapsed > 1000:
     #     print(elapsed)
+
+    # HANDLE IDLE UNITS:
+
+    # 1) UNITS SITTING ON EMPTY POSITION NEXT TO UN-RESEARCHED RESOURCE
+
+    # 2) UNITS TRAPPED INTO A FULLY DEVELOPED CITY
+
+    # 3) UNITS TRAPPED OUTSIDE CITY BECAUSE EXPORT POSITION DISAPPEARED
+
+    # 4) UNITS TRAPPED INSIDE A FULLY DEVELOPED CITY
+
+
 
     return [actions, units_allowance, researched]
 

@@ -5,7 +5,7 @@ import extensions
 from cluster import Cluster
 from churn import solve_churn_with_score, get_move_actions_with_blocks
 from lux.game_map import Position
-from lux.game_objects import Unit
+from lux.game_objects import Unit, City
 
 
 def build_workers_or_research(cluster, cluster_development_settings, units_to_push_out):
@@ -119,17 +119,36 @@ def step_within_cities_into_better_mining_positions(
     return a, c
 
 
-def build_city_tiles(cluster, units_taken_actions_ids):
+def build_city_tiles(cluster, cannot_act_units_ids, turn):
     a = []
     b = []
     c = []
     for cell_pos, cell_info in cluster.cell_infos.items():
         if cell_info.is_empty and cell_info.my_units:
             unit = cell_info.my_units[0]
-            if unit.can_act() and unit.get_cargo_space_left() == 0 and unit.id not in units_taken_actions_ids:
-                a.append(unit.build_city())
-                b.append(cell_pos)
-                c.append(unit.id)
+            if unit.can_act() and unit.get_cargo_space_left() == 0 and unit.id not in cannot_act_units_ids:
+                refuel_pos = None
+                # rule: do not build with coal or uranium if adjacent city needs refuel.
+                if unit.cargo.coal > 0 or unit.cargo.uranium > 0:
+                    adjacent_city_positions = cluster_extensions.get_adjacent_city_tiles_positions(cluster, cell_pos)
+                    if adjacent_city_positions:
+                        biggest_city_size = 0
+                        for adj_pos in adjacent_city_positions:
+                            city = cluster.cell_infos[adj_pos].my_city
+                            can_survive = extensions.get_fuel_remaining_to_survival(city, turn) < 0
+                            if not can_survive:
+                                size = len(city.citytiles)
+                                if size > biggest_city_size:
+                                    biggest_city_size = size
+                                    refuel_pos = adj_pos
+                if refuel_pos is not None:  # no adjacent city or the city will survive
+                    direction = extensions.get_directions_to_target(cell_pos, refuel_pos)
+                    a.append(unit.move(direction))
+                    c.append(unit.id)
+                else:
+                    a.append(unit.build_city())
+                    b.append(cell_pos)
+                    c.append(unit.id)
     return a, b, c
 
 
