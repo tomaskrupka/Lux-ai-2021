@@ -40,8 +40,8 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     cannot_act_units_ids += c
     b = ce.get_opponent_city_tiles(cluster)
     blocked_positions += b
-    #
-    # if game_state.turn == 16:
+
+    # if game_state.turn == 256:
     #     print('my turn')
 
     # CITY TILE ACTIONS

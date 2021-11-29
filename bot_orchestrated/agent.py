@@ -54,7 +54,7 @@ def agent(observation, configuration):
                                      opponent_units)  # id = cluster
     my_free_units = agent_extensions.get_free_units(my_units, clusters)
     remaining_units_allowance = agent_extensions.get_remaining_units_allowance(clusters, my_city_tiles, my_free_units)
-    unmoved_units = my_units.keys()
+    unmoved_free_units = my_free_units
     blocked_positions = []
     cannot_act_units_ids = agent_extensions.get_cannot_act_units_ids(my_units)
 
@@ -74,6 +74,9 @@ def agent(observation, configuration):
     free_clusters = [c for s, c in scores_free_clusters]
 
     # SEND FREE UNITS TO CLUSTERS
+    #
+    # if game_state.turn == 256:
+    #     print('my turn')
 
     if free_clusters:
         blocked_positions = []
@@ -92,7 +95,7 @@ def agent(observation, configuration):
     # SEND UNMOVED UNITS TO CLOSEST CLUSTER
 
     a, b, c, unmoved_units = agent_actions.send_units_to_closest_cluster(
-        unmoved_units,
+        unmoved_free_units,
         clusters.values(),
         my_units,
         blocked_positions,
