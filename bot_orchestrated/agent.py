@@ -50,9 +50,13 @@ def agent(observation, configuration):
     opponent_city_tiles = recon.get_player_city_tiles(opponent)
     my_units = recon.get_player_unit_positions(me)  # pos = [unit]
     opponent_units = recon.get_player_unit_positions(opponent)
-    clusters = recon.detect_clusters(game_state, my_city_tiles, opponent_city_tiles, my_units, opponent_units)  # id = cluster
+    clusters = recon.detect_clusters(game_state, my_city_tiles, opponent_city_tiles, my_units,
+                                     opponent_units)  # id = cluster
     my_free_units = agent_extensions.get_free_units(my_units, clusters)
     remaining_units_allowance = agent_extensions.get_remaining_units_allowance(clusters, my_city_tiles, my_free_units)
+    unmoved_units = my_units.keys()
+    blocked_positions = []
+    cannot_act_units_ids = agent_extensions.get_cannot_act_units_ids(my_units)
 
     # if game_state.turn == 49:
     #     print('my turn')
@@ -73,7 +77,6 @@ def agent(observation, configuration):
 
     if free_clusters:
         blocked_positions = []
-        cannot_act_units_ids = agent_extensions.get_cannot_act_units_ids(my_units)
         a, b, c, unmoved_units, clusters_ids_units = agent_actions.send_free_units_to_empty_clusters(
             my_free_units,
             scores_free_clusters,
@@ -85,6 +88,20 @@ def agent(observation, configuration):
         actions += a
         blocked_positions += b
         cannot_act_units_ids += c
+
+    # SEND UNMOVED UNITS TO CLOSEST CLUSTER
+
+    a, b, c, unmoved_units = agent_actions.send_units_to_closest_cluster(
+        unmoved_units,
+        clusters.values(),
+        my_units,
+        blocked_positions,
+        cannot_act_units_ids,
+        game_state.turn)
+
+    actions += a
+    blocked_positions += b
+    cannot_act_units_ids += c
 
     # CALCULATE EXPORT REQUESTS FOR DEVELOPING CLUSTERS
 
