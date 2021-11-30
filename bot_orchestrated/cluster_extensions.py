@@ -44,6 +44,13 @@ def get_adjacent_positions_within_cluster(p: Position, c: Cluster):
     return adjacent_positions_within_cluster
 
 
+def get_next_to_adjacent_positions_within_cluster(p: Position, c: Cluster):
+    positions = []
+    for cluster_pos in c.cell_infos:
+        if (cluster_pos.x == p.x and abs(cluster_pos.y - p.y) == 2) or (cluster_pos.y == p.y and abs(cluster_pos.y - p.y) == 2) or (abs(cluster_pos.x - p.x) == abs(cluster_pos.y - p.y) == 1):
+            positions.append(cluster_pos)
+
+
 def can_mine_on_position(cluster: Cluster, position: Position, mined_resource):
     cell_info = cluster.cell_infos[position]
     can_mine_here = cell_info.mining_potential['WOOD'] > 0 or \

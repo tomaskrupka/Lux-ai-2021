@@ -2,7 +2,7 @@ import math
 
 import cluster_extensions
 import extensions
-from cluster import Cluster
+from cluster import Cluster, CellInfo
 from churn import solve_churn_with_score, get_move_actions_with_blocks
 from lux.game_map import Position
 from lux.game_objects import Unit, City
@@ -115,8 +115,18 @@ def step_within_cities_into_better_mining_positions(
                         break
     return a, c
 
+#
+# def move_into_better_mining_positions(cluster: Cluster, blocked_positions, cannot_act_units_ids):
+#     a = []
+#     b = []
+#     c = []
+#     for cell_pos, cell_info in cluster.cell_infos.items():
 
-def build_city_tiles(cluster, units_taken_actions_ids):
+
+
+
+
+def build_city_tiles(cluster, units_taken_actions_ids, cluster_development_settings):
     a = []
     b = []
     c = []
@@ -124,11 +134,19 @@ def build_city_tiles(cluster, units_taken_actions_ids):
         if cell_info.is_empty and cell_info.my_units:
             unit = cell_info.my_units[0]
             if unit.can_act() and unit.get_cargo_space_left() == 0 and unit.id not in units_taken_actions_ids:
-                a.append(unit.build_city())
-                b.append(cell_pos)
-                c.append(unit.id)
+                can_build = True
+                if extensions.get_days_to_night(cluster_development_settings.turn) < 2:
+                    can_build = False
+                    adjacent_positions = cluster_extensions.get_adjacent_positions_within_cluster(cell_pos, cluster)
+                    for adj_pos in adjacent_positions:
+                        if cluster.cell_infos[adj_pos].my_city_tile or cluster.cell_infos[adj_pos].my_units:
+                            can_build = True
+                            break
+                if can_build:
+                    a.append(unit.build_city())
+                    b.append(cell_pos)
+                    c.append(unit.id)
     return a, b, c
-
 
 
 # TODO : look past two.
@@ -180,7 +198,8 @@ def step_out_of_resources_into_adjacent_empty(
         if cell_info.resource and cell_info.my_units:
             unit = cell_info.my_units[0]
             if unit.id not in cannot_act_units_ids:
-                can_act_units_on_resource.append(cell_pos)
+                if unit.cargo.wood > 0 or unit.cargo.coal > 79 or unit.cargo.uranium > 93:
+                    can_act_units_on_resource.append(cell_pos)
     for pos in can_act_units_on_resource:
         adjacent_development_positions = cluster_extensions.get_adjacent_development_positions(cluster, pos)
         # If unit at full capacity, let it move towards any resource
@@ -198,7 +217,9 @@ def step_out_of_resources_into_adjacent_empty(
     positions_scores = dict()
     for position, options in positions_options:
         for option in options:
-            positions_scores[option] = 1
+            cell_info: CellInfo
+            cell_info = cluster.cell_infos[option]
+            positions_scores[option] = cluster_extensions.get_mining_potential_aggregate(cell_info.mining_potential, mined_resource)
     moves_solutions, scores = solve_churn_with_score(positions_options, positions_scores)
     moves, source_to_list, c = get_move_actions_with_blocks(positions_options, moves_solutions, cluster, [])
     a += moves

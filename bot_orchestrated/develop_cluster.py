@@ -41,7 +41,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     b = ce.get_opponent_city_tiles(cluster)
     blocked_positions += b
 
-    # if game_state.turn == 256:
+    # if game_state.turn == 70:
     #     print('my turn')
 
     # CITY TILE ACTIONS
@@ -53,7 +53,7 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     # BUILD CITY TILES OR REFUEL CITIES FROM UNITS WITH NON-WOOD CARGO INSTEAD OF BUILDING
     # TODO: exclude units coming to the city with resources.
 
-    a, b, c = dca.build_city_tiles(cluster, cannot_act_units_ids)
+    a, b, c = dca.build_city_tiles(cluster, cannot_act_units_ids, cluster_development_settings)
     actions += a
     blocked_positions += b
     cannot_act_units_ids += c
@@ -166,15 +166,26 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     # if elapsed > 1000:
     #     print(elapsed)
 
+    # MOVE WITHIN LESS DEVELOPED CLUSTERS INTO BETTER MINING POSITIONS
+
+    # MOVE THROUGH UNRESEARCHED RESOURCE
+
+
     # HANDLE IDLE UNITS:
 
     # 1) UNITS SITTING ON EMPTY POSITION NEXT TO UN-RESEARCHED RESOURCE
+
+
 
     # 2) UNITS TRAPPED INTO A FULLY DEVELOPED CITY
 
     # 3) UNITS TRAPPED OUTSIDE CITY BECAUSE EXPORT POSITION DISAPPEARED
 
     # 4) UNITS TRAPPED INSIDE A FULLY DEVELOPED CITY
+
+    # 5) UNITS IN A CITY AT NIGHT THAT IS ABOUT TO DIE THE NEXT ROUND
+
+    # 6) TWO UNITS ON THE SAME SPOT IN A CITY AT NIGHT
 
 
 
