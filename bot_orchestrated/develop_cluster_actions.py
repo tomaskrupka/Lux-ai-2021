@@ -115,16 +115,6 @@ def step_within_cities_into_better_mining_positions(
                         break
     return a, c
 
-#
-# def move_into_better_mining_positions(cluster: Cluster, blocked_positions, cannot_act_units_ids):
-#     a = []
-#     b = []
-#     c = []
-#     for cell_pos, cell_info in cluster.cell_infos.items():
-
-
-
-
 
 def build_city_tiles(cluster, units_taken_actions_ids, cluster_development_settings):
     a = []
@@ -138,10 +128,19 @@ def build_city_tiles(cluster, units_taken_actions_ids, cluster_development_setti
                 if extensions.get_days_to_night(cluster_development_settings.turn) < 2:
                     can_build = False
                     adjacent_positions = cluster_extensions.get_adjacent_positions_within_cluster(cell_pos, cluster)
+                    adjacent_resources = 0
                     for adj_pos in adjacent_positions:
+                        cell_info = cluster.cell_infos[adj_pos]
+                        if cell_info.resource:
+                            if cell_info.resource.type == 'wood':
+                                adjacent_resources += 1
+                            else:
+                                adjacent_resources += 2
                         if cluster.cell_infos[adj_pos].my_city_tile or cluster.cell_infos[adj_pos].my_units:
                             can_build = True
                             break
+                    if adjacent_resources >= 2:
+                        can_build = True
                 if can_build:
                     a.append(unit.build_city())
                     b.append(cell_pos)
@@ -256,7 +255,7 @@ def step_within_resources(units_on_resource, cluster, cluster_development_settin
                     dist = export_pos.distance_to(target)
                     if min_dist_to_export > dist:
                         min_dist_to_export = dist
-                min_dist_to_empty = math.inf
+                min_dist_to_empty = 100
                 for position in mineable_development_positions:
                     # Add position next to unlocked resources only for loaded units
                     can_mine_on_position = cluster_extensions.can_mine_on_position(
@@ -267,7 +266,7 @@ def step_within_resources(units_on_resource, cluster, cluster_development_settin
                         dist = position.distance_to(target)
                         if dist < min_dist_to_empty:
                             min_dist_to_empty = dist
-                positions_scores[target] = 1000 - min_dist_to_export * 100 - min_dist_to_empty - 10 * (
+                positions_scores[target] = 10000 - min_dist_to_export * 1000 - min_dist_to_empty - 100 * (
                         cluster.cell_infos[target].my_city_tile is not None)
 
             positions_options = []

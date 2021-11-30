@@ -1,6 +1,7 @@
 import extensions
 from cluster import Cluster
 from lux.game_map import Position
+from lux.game_objects import Unit
 
 
 def get_units_needed_for_maintenance(c: Cluster):
@@ -203,3 +204,30 @@ def get_opponent_city_tiles(cluster: Cluster):
             b.append(pos)
     return b
 
+
+def get_stuck_units(cluster: Cluster, cannot_act_units_ids):
+    stuck_units_positions = []
+    for pos, cell_info in cluster.cell_infos.items():
+        if cell_info.my_units and not cell_info.my_city:
+            unit:Unit
+            unit = cell_info.my_units[0]
+            if unit.cargo.wood == 0 and unit.cargo.coal < 80 and unit.cargo.uranium < 94:
+                if unit.id not in cannot_act_units_ids:
+                    stuck_units_positions.append(pos)
+    return stuck_units_positions
+
+
+def get_units_next_to_unmined_resource(cluster: Cluster, mined_resource):
+    stuck_units = []
+    for pos, cell_info in cluster.cell_infos.items():
+        if cell_info.my_units:
+            adjacent_positions = get_adjacent_positions_within_cluster(pos, cluster)
+            adjacent_positions.append(pos)
+            unit_can_mine = False
+            for adj_pos in adjacent_positions:
+                if can_mine_on_position(cluster, adj_pos, mined_resource):
+                    unit_can_mine = True
+                    break
+            if not unit_can_mine:
+                stuck_units.append(pos)
+    return stuck_units

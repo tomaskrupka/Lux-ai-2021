@@ -166,9 +166,24 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     # if elapsed > 1000:
     #     print(elapsed)
 
-    # MOVE WITHIN LESS DEVELOPED CLUSTERS INTO BETTER MINING POSITIONS
-
     # MOVE THROUGH UNRESEARCHED RESOURCE
+
+    if cluster_development_settings.turn == 47:
+        print('my turn')
+
+    stuck_units = ce.get_stuck_units(cluster, cluster_development_settings.mined_resource)
+    if stuck_units:
+        blocked_positions_now = ce.get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids)
+        a, b, c, stuck_units = dca.step_within_resources(
+            stuck_units,
+            cluster,
+            cluster_development_settings,
+            blocked_positions_now,
+            cannot_act_units_ids)
+        actions += a
+        blocked_positions += b
+        cannot_act_units_ids += c
+
 
 
     # HANDLE IDLE UNITS:
