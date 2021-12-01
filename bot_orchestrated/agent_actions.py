@@ -1,6 +1,7 @@
 import extensions
 import develop_cluster
 import cluster
+from lux import game_constants
 from lux.game import Game
 from lux.game_objects import Unit
 
@@ -18,7 +19,7 @@ def send_free_units_to_empty_clusters(
     not_moved_units_positions = set(free_units_positions)
     clusters_ids_units = dict()  # cluster_id = count of units going there
     for score, free_cluster in scores_clusters:
-        clusters_ids_units[free_cluster.cluster_id] = 0
+        clusters_ids_units[free_cluster.cluster_id] = game_constants.GAME_CONSTANTS["BOT_SETTINGS"]["MAX_FREE_UNITS_PER_CLUSTER"]
 
     for free_unit_position in free_units_positions:
         unit: Unit
@@ -38,7 +39,7 @@ def send_free_units_to_empty_clusters(
                             if new_pos not in blocked_positions and new_pos not in b:
                                 free_directions.append((direction, new_pos))
                         if free_directions:
-                            direction = free_directions[0] if len(free_directions) == 1 else free_directions[turn % 2]
+                            direction = free_directions[0] # if len(free_directions) == 1 else free_directions[turn % 2]
                             a.append(unit.move(direction[0]))
                             b.append(direction[1])
                             c.append(unit.id)
@@ -64,17 +65,18 @@ def send_units_to_closest_cluster(units_positions, clusters, my_units_dict, bloc
                     target_pos = perimeter_position
                     closest_cluster_dist = distance
             directions = extensions.get_all_directions_to_target(pos, target_pos)
-            free_directions = []
-            for direction in directions:
-                new_pos = extensions.get_new_position(pos, direction)
-                if new_pos not in blocked_positions and new_pos not in b:
-                    free_directions.append((direction, new_pos))
-            if free_directions:
-                direction = free_directions[0] if len(free_directions) == 1 else free_directions[turn % 2]
-                a.append(unit.move(direction[0]))
-                b.append(direction[1])
-                c.append(unit.id)
-                not_moved_units_positions.remove(pos)
+            if target_pos is not None:
+                free_directions = []
+                for direction in directions:
+                    new_pos = extensions.get_new_position(pos, direction)
+                    if new_pos not in blocked_positions and new_pos not in b:
+                        free_directions.append((direction, new_pos))
+                if free_directions:
+                    direction = free_directions[0] # if len(free_directions) == 1 else free_directions[turn % 2]
+                    a.append(unit.move(direction[0]))
+                    b.append(direction[1])
+                    c.append(unit.id)
+                    not_moved_units_positions.remove(pos)
     return a, b, c, not_moved_units_positions
 
 

@@ -1,5 +1,6 @@
 import math
 
+from lux import game_constants
 from lux.game import Game
 from lux.game_map import Position
 from lux.game_objects import City
@@ -60,16 +61,17 @@ def get_all_directions_to_target(position_from, position_to):
     y_diff = position_to.y - position_from.y
     directions = []
     if x_diff > 0:
-        directions.append('e')
+        directions.append(('e', x_diff))
     if x_diff < 0:
-        directions.append('w')
+        directions.append(('w', -x_diff))
     if y_diff > 0:
-        directions.append('s')
+        directions.append(('s', y_diff))
     if y_diff < 0:
-        directions.append('n')
+        directions.append(('n', -y_diff))
     if not directions:
-        directions.append('c')
-    return directions
+        directions.append(('c', 0))
+    directions.sort(key=lambda x: x[1], reverse=True)
+    return [d[0] for d in directions]
 
 
 def get_days_to_night(turn):
@@ -81,6 +83,16 @@ def get_mined_resource(research_level):
     if research_level >= 50:
         mined_resource = 'COAL'
     if research_level >= 200:
+        mined_resource = 'URANIUM'
+    return mined_resource
+
+
+def get_mined_resource_for_cluster_development(research_level, turn, cities_count):
+    mined_resource = 'WOOD'
+    next_night_research_level = research_level + get_days_to_night(turn) * cities_count / game_constants.GAME_CONSTANTS["BOT_SETTINGS"]["CITY_RESEARCH_PERIOD_TURNS"]
+    if next_night_research_level >= 50:
+        mined_resource = 'COAL'
+    if next_night_research_level >= 200:
         mined_resource = 'URANIUM'
     return mined_resource
 

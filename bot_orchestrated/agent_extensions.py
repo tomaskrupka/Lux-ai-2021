@@ -72,15 +72,15 @@ def get_free_clusters(all_clusters_dict):
     return free_clusters
 
 
-def prioritize_all_clusters_for_development(clusters, mined_resource):
+def prioritize_all_clusters_for_development(clusters, mined_resource_for_development):
     free_clusters_dict = get_free_clusters(clusters)
     scores_clusters = []
     cluster: Cluster
     for cluster in free_clusters_dict.values():
         cluster_score = cluster.resource_amounts_total['wood']
-        if mined_resource != 'wood':
+        if mined_resource_for_development != 'wood':
             cluster_score += cluster.resource_amounts_total['coal']
-            if mined_resource == 'uranium':
+            if mined_resource_for_development == 'uranium':
                 cluster_score += cluster.resource_amounts_total['uranium']
         scores_clusters.append((cluster_score, cluster))
     scores_clusters.sort(key=lambda x: x[0], reverse=True)

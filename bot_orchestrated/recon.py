@@ -9,10 +9,12 @@ from lux.game import Game
 
 def get_player_city_tiles(player):
     player_city_tiles = dict()
+    city_tiles_total_count = 0
     for k, city in player.cities.items():
         for tile in city.citytiles:
             player_city_tiles[tile.pos] = (city, tile)
-    return player_city_tiles
+            city_tiles_total_count += 1
+    return player_city_tiles, city_tiles_total_count
 
 
 def get_player_unit_positions(player: Player):

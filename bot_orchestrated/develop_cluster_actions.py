@@ -64,6 +64,33 @@ def pull_units_to_cities(cluster: Cluster, cities_scores, cannot_act_units_ids):
     return a, c
 
 
+def churn_inside_city(cities_mineabilities,
+                      cluster: Cluster,
+                      cannot_act_units_ids):
+    a = []
+    c = []
+    for city_id in cities_mineabilities:
+        for pos in cities_mineabilities[city_id]:
+            units = [u for u in cluster.cell_infos[pos].my_units if u.id not in cannot_act_units_ids]
+            if units:
+                adj_city_positions = cluster_extensions.get_adjacent_city_tiles_positions(cluster, pos)
+                if not adj_city_positions:
+                    continue
+                adj_city_positions_scores = []
+                for adj_city_pos in adj_city_positions:
+                    units_count = len(cluster.cell_infos[adj_city_pos].my_units)
+                    adj_city_positions_scores.append((adj_city_pos, units_count))
+                # score by lowest count
+                adj_city_positions_scores.sort(key=lambda x: x[1])
+                directions = []
+                for adj_city_pos, adj_city_score in adj_city_positions_scores:
+                    direction = extensions.get_directions_to_target(pos, adj_city_pos)
+                    directions.append(direction)
+                for unit, direction in zip(units, directions):
+                    a.append(unit.move(direction))
+    return a, c
+
+
 def step_within_cities_into_better_mining_positions(
         cities_mineabilities,
         cluster: Cluster,
@@ -431,6 +458,7 @@ def step_out_of_cities_into_mining(cluster, cluster_development_settings, blocke
                 for unit in cell_info.my_units:
                     if unit.id not in cannot_act_units_ids:
                         positions_options.append([cell_pos, cell_pos_options])
+    # todo: make it towards the opponent
     positions_scores = dict()
     for position, options in positions_options:
         for option in options:
@@ -444,7 +472,7 @@ def step_out_of_cities_into_mining(cluster, cluster_development_settings, blocke
             b.append(towards)
     return a, b, c
 
-#
+
 # # TODO: step into city that benefits the most from this unit.
 # def step_into_city(positions, cluster, cluster_development_settings, cities_by_fuel):
 #     a = []
