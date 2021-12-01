@@ -168,14 +168,14 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # MOVE THROUGH UNRESEARCHED RESOURCE
 
-    if cluster_development_settings.turn == 47:
-        print('my turn')
+    # if cluster_development_settings.turn == 47:
+    #     print('my turn')
 
-    stuck_units = ce.get_stuck_units(cluster, cluster_development_settings.mined_resource)
-    if stuck_units:
+    stuck_units_on_mining = ce.get_stuck_units_on_mining_position(cluster, cluster_development_settings.mined_resource)
+    if stuck_units_on_mining:
         blocked_positions_now = ce.get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids)
-        a, b, c, stuck_units = dca.step_within_resources(
-            stuck_units,
+        a, b, c, stuck_units_on_mining = dca.step_within_resources(
+            stuck_units_on_mining,
             cluster,
             cluster_development_settings,
             blocked_positions_now,
@@ -185,22 +185,34 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
         cannot_act_units_ids += c
 
 
+    # STEP OUT OF RESOURCE INTO ADJACENT MINING POSITION AT NIGHT IF MULTIPLE UNTIS ON POSITION
+
+    stuck_units_ids = ce.get_stuck_units_in_city(cluster, cannot_act_units_ids)
+    disallowed_units = ce.get_disallowed_units_for_night_move_out(cluster, cannot_act_units_ids, stuck_units_ids)
+
+    if night_mode:
+        a, b, c = dca.step_out_of_cities_into_mining(
+            cluster,
+            cluster_development_settings,
+            blocked_positions,
+            disallowed_units)
+        actions += a
+        cannot_act_units_ids += c
+
+    # CHURN UNITS IN A CITY
+
+    # if not night_mode:
+    #     a, c = dca.churn_inside_city(cities_mineabilities, cluster, cannot_act_units_ids)
+    #     actions += a
+    #     cannot_act_units_ids += c
 
     # HANDLE IDLE UNITS:
 
-    # 1) UNITS SITTING ON EMPTY POSITION NEXT TO UN-RESEARCHED RESOURCE
+    # UNITS TRAPPED WITH ACCESS TO NOTHING BUT OPPONENT CITY, EMPTY TILE, OWN CITY, UNRESEARCHED RESOURCE
 
+    # TRAPPED INSIDE A FULLY DEVELOPED CITY
 
-
-    # 2) UNITS TRAPPED INTO A FULLY DEVELOPED CITY
-
-    # 3) UNITS TRAPPED OUTSIDE CITY BECAUSE EXPORT POSITION DISAPPEARED
-
-    # 4) UNITS TRAPPED INSIDE A FULLY DEVELOPED CITY
-
-    # 5) UNITS IN A CITY AT NIGHT THAT IS ABOUT TO DIE THE NEXT ROUND
-
-    # 6) TWO UNITS ON THE SAME SPOT IN A CITY AT NIGHT
+    # UNITS IN A CITY AT NIGHT THAT IS ABOUT TO DIE THE NEXT ROUND
 
 
 

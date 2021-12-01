@@ -49,14 +49,14 @@ def agent(observation, configuration):
         # Recon
         me = game_state.players[observation.player]
         opponent = game_state.players[(observation.player + 1) % 2]
-        my_city_tiles = recon.get_player_city_tiles(me)
-        opponent_city_tiles = recon.get_player_city_tiles(opponent)
+        my_city_tiles_dict, my_city_tiles_count = recon.get_player_city_tiles(me)
+        opponent_city_tiles_dict, opponent_city_tiles_count = recon.get_player_city_tiles(opponent)
         my_units = recon.get_player_unit_positions(me)  # pos = [unit]
         opponent_units = recon.get_player_unit_positions(opponent)
-        clusters = recon.detect_clusters(game_state, my_city_tiles, opponent_city_tiles, my_units,
+        clusters = recon.detect_clusters(game_state, my_city_tiles_dict, opponent_city_tiles_dict, my_units,
                                          opponent_units)  # id = cluster
         my_free_units = agent_extensions.get_free_units(my_units, clusters)
-        remaining_units_allowance = agent_extensions.get_remaining_units_allowance(clusters, my_city_tiles,
+        remaining_units_allowance = agent_extensions.get_remaining_units_allowance(clusters, my_city_tiles_dict,
                                                                                    my_free_units)
         unmoved_free_units = my_free_units
         blocked_positions = []
@@ -71,10 +71,13 @@ def agent(observation, configuration):
 
         scores_free_clusters = agent_extensions.prioritize_all_clusters_for_development(
             clusters,
-            extensions.get_mined_resource(me.research_points))  # [(score, cluster)]
+            extensions.get_mined_resource_for_cluster_development(me.research_points, game_state.turn, my_city_tiles_count))  # [(score, cluster)]
         free_clusters = [c for s, c in scores_free_clusters]
 
         # SEND FREE UNITS TO CLUSTERS
+
+        if game_state.turn == 44:
+            print('my turn')
 
         if free_clusters:
             blocked_positions = []
@@ -89,6 +92,8 @@ def agent(observation, configuration):
             actions += a
             blocked_positions += b
             cannot_act_units_ids += c
+
+
 
         # SEND UNMOVED UNITS TO CLOSEST CLUSTER
 

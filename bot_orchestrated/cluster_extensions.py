@@ -205,7 +205,7 @@ def get_opponent_city_tiles(cluster: Cluster):
     return b
 
 
-def get_stuck_units(cluster: Cluster, cannot_act_units_ids):
+def get_stuck_units_on_mining_position(cluster: Cluster, cannot_act_units_ids):
     stuck_units_positions = []
     for pos, cell_info in cluster.cell_infos.items():
         if cell_info.my_units and not cell_info.my_city:
@@ -215,6 +215,27 @@ def get_stuck_units(cluster: Cluster, cannot_act_units_ids):
                 if unit.id not in cannot_act_units_ids:
                     stuck_units_positions.append(pos)
     return stuck_units_positions
+
+
+def get_stuck_units_in_city(cluster: Cluster, cannot_act_units_ids):
+    stuck_units_ids =[]
+    for pos, cell_info in cluster.cell_infos.items():
+        if len(cell_info.my_units) > 1 and cell_info.my_city:
+            for unit in cell_info.my_units:
+                if unit.id not in cannot_act_units_ids:
+                    stuck_units_ids.append(unit.id)
+                    break
+    return stuck_units_ids
+
+
+def get_disallowed_units_for_night_move_out(cluster: Cluster, cannot_act_units_ids, stuck_units_ids):
+    disallowed_units_ids = []
+    for pos, cell_info in cluster.cell_infos.items():
+        if cell_info.my_units:
+            for unit in cell_info.my_units:
+                if unit.id in cannot_act_units_ids or unit.id not in stuck_units_ids:
+                    disallowed_units_ids.append(unit.id)
+    return disallowed_units_ids
 
 
 def get_units_next_to_unmined_resource(cluster: Cluster, mined_resource):
