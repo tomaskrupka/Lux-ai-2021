@@ -167,15 +167,15 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     #     print(elapsed)
 
     # MOVE THROUGH UNRESEARCHED RESOURCE
-
-    # if cluster_development_settings.turn == 47:
+    #
+    # if cluster_development_settings.turn == 60:
     #     print('my turn')
 
-    stuck_units_on_mining = ce.get_stuck_units_on_mining_position(cluster, cluster_development_settings.mined_resource)
-    if stuck_units_on_mining:
+    stuck_units_not_in_city = ce.get_stuck_units_not_in_city(cluster, cluster_development_settings.mined_resource)
+    if stuck_units_not_in_city:
         blocked_positions_now = ce.get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids)
-        a, b, c, stuck_units_on_mining = dca.step_within_resources(
-            stuck_units_on_mining,
+        a, b, c, stuck_units_not_in_city = dca.step_within_resources(
+            stuck_units_not_in_city,
             cluster,
             cluster_development_settings,
             blocked_positions_now,

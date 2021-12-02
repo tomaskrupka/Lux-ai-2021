@@ -205,7 +205,7 @@ def get_opponent_city_tiles(cluster: Cluster):
     return b
 
 
-def get_stuck_units_on_mining_position(cluster: Cluster, cannot_act_units_ids):
+def get_stuck_units_not_in_city(cluster: Cluster, cannot_act_units_ids):
     stuck_units_positions = []
     for pos, cell_info in cluster.cell_infos.items():
         if cell_info.my_units and not cell_info.my_city:
