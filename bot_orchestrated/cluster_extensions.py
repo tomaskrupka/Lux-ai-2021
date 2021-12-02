@@ -126,6 +126,15 @@ def get_mining_potential_aggregate(mining_potential, mined_resource):
         return mining_potential['WOOD'] * 20 + mining_potential['COAL'] * 50 + mining_potential['URANIUM'] + 80
 
 
+def get_advanced_resources_mining_potential(mining_potential, mined_resource):
+    if mined_resource == 'WOOD':
+        return 0
+    if mined_resource == 'COAL':
+        return mining_potential['COAL']
+    if mined_resource == 'URANIUM':
+        return mining_potential['COAL'] + mining_potential['URANIUM']
+
+
 def get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids):
     blocked_positions_now = []
     for p in cluster.cell_infos:

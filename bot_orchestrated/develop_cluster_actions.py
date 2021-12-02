@@ -284,6 +284,7 @@ def step_within_resources(units_on_resource, cluster, cluster_development_settin
                         min_dist_to_export = dist
                 min_dist_to_empty = 100
                 min_dist_to_export_penalty = min_dist_to_export * 10
+                mining_bonus = 0
                 for position in mineable_development_positions:
                     # Add position next to unlocked resources only for loaded units
                     can_mine_on_position = cluster_extensions.can_mine_on_position(
@@ -294,7 +295,12 @@ def step_within_resources(units_on_resource, cluster, cluster_development_settin
                         dist = position.distance_to(target)
                         if dist < min_dist_to_empty:
                             min_dist_to_empty = dist
-                positions_scores[target] = 100 - min_dist_to_export_penalty - min_dist_to_empty
+                if cluster_development_settings.mined_resource != 'WOOD':
+                    target_mining_potential = cluster_extensions.get_advanced_resources_mining_potential(cluster.cell_infos[target].mining_potential, cluster_development_settings.mined_resource)
+                    if target_mining_potential > 0:
+                        min_dist_to_export_penalty = 0
+                        mining_bonus = target_mining_potential
+                positions_scores[target] = 10000 - min_dist_to_export_penalty * 100 - min_dist_to_empty + mining_bonus
 
             positions_options = []
             for position in units_on_resource:
