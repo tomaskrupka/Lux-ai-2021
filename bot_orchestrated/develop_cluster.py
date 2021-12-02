@@ -144,6 +144,9 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # STEP OUT OF CITIES INTO MINING POSITIONS
 
+    if cluster_development_settings.turn == 15:
+        print('my turn')
+
     if not night_mode:
         a, b, c = dca.step_out_of_cities_into_mining(
             cluster,
@@ -167,15 +170,15 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     #     print(elapsed)
 
     # MOVE THROUGH UNRESEARCHED RESOURCE
-    #
-    # if cluster_development_settings.turn == 60:
+
+    # if cluster_development_settings.turn == 47:
     #     print('my turn')
 
-    stuck_units_not_in_city = ce.get_stuck_units_not_in_city(cluster, cluster_development_settings.mined_resource)
-    if stuck_units_not_in_city:
+    stuck_units_on_mining = ce.get_stuck_units_on_mining_position(cluster, cluster_development_settings.mined_resource)
+    if stuck_units_on_mining:
         blocked_positions_now = ce.get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids)
-        a, b, c, stuck_units_not_in_city = dca.step_within_resources(
-            stuck_units_not_in_city,
+        a, b, c, stuck_units_on_mining = dca.step_within_resources(
+            stuck_units_on_mining,
             cluster,
             cluster_development_settings,
             blocked_positions_now,
