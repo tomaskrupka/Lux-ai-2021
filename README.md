@@ -1,19 +1,72 @@
 
 # Lux bot
 
-Lux bot is a submission for the [2021 Lux AI challenge](https://www.lux-ai.org/specs-2021).
+This repo is my submission for the [2021 Lux AI challenge](https://www.lux-ai.org/specs-2021),
+exactly as I've submitted it.
+
+## About
+
+This is a bot designed to play a game against another bot.
+The rules are [here](https://www.lux-ai.org/specs-2021).
+
+The Kaggle intro puts it this way:
+
+>The Lux AI Challenge is a competition where competitors design agents to tackle a multi-variable optimization, resource gathering, and allocation problem in a 1v1 scenario against other competitors.
+
+### <a name="Agent"></a> Agent
+By the game specification, the agent is
+
+>A function which given an observation generates an action.
+
+In other words, each turn the game engine runs the 
+[`agent(observation, configuration)`](https://github.com/tomaskrupka/Lux-ai-2021/blob/main/bot_orchestrated/agent.py)
+function to 
+- provide the agent with the current game state and
+- gather its [actions](#action).
+
+### <a name="action"></a> Action
+
+Submitting actions to the game engine is how the agent plays the game.
+The actions are specified in the rules,
+most of the time it's moving a unit, producing a unit or building a city tile. 
 
 ## Rationale
-The bot builds on some universal ground rules which provide bounding limitations for developing [strategies](#strategy).
-The only exception to any rule in this list is when it breaks a rule above it.
 
-1. [Agent](#agent) has the final authority over actions submitted.
-2. [Clusters](#cluster) have full autonomy over everything within their perimeter.
-3. Units and cities don't think for themselves.
+The problem domain of the gameplay is huge.
+To split the problem into smaller, focused units that are easier to tackle, 
+the bot always follows a set of ground rules
+when reading the situation and developing [strategies](#strategy).
+
+1. Each turn the map is split into [clusters](#cluster) and the [open space](#open_space) that fills the rest of the map.
+2. [Clusters](#cluster) have full autonomy over their territory and act as an agent on that domain. 
+3. [Agent](#agent) has the final authority over the actions submitted to the game engine.
+
+## <a name="cluster"></a> Cluster
+
+Clusters are objects defined around sets of neighboring resource tiles,
+city tiles and their perimeter.
+
+1. They have exclusive control over their perimeter, resources and units within.
+No one else can submit an action on a unit or a tile within a cluster's territory.
+2. Clusters must raise a [flag](#flags) should they need outer intervention.
+3. It's the [agent's](#agent) exclusive responsibility to observe the flags and react upon them.
+
+#### <a name="flags"></a>Flags
+
+Clusters have the ability to signal about their state.
+The [agent](#agent) will issue [operations](#operation) based on these signals.
+
+- `need_refuel` There's a city in the cluster that can't sustain itself through the upcoming night.
+- `can_export` Cluster can export resources.
+- `export_positions` Neighboring positions that the cluster is able to export to.
+
+### <a name="open_space"></a> Open space
+
+Open space is the object that is responsible for the tiles that are not part of any cluster.
 
 ## <a name="strategy"></a> Strategy
 
-Strategy is a set of rules that govern the bot behaviour. These can be tweaked, parametrized and changed.
+Strategy is a set of rules that govern the bot behavior. These can be tweaked, parametrized and changed.
 This way, multiple bots following different strategies
 (e.g. aggressive, local, conquering...) can be developed quickly using the same codebase. 
 
@@ -23,11 +76,6 @@ The cookbook for the current implementation is roughly as follows:
 - Prioritize wood from start of game.
 - Try to gain control over whole cluster.
 - Build sustainably (avoid dying of cities).
-
-## <a name="Agent"></a> Agent
-By the game specification, the agent is
-
->A function which given an observation generates an action.
 
 Agent is a rule-based program, no ML involved. Its workflow is as follows:
 
@@ -43,23 +91,6 @@ Agent is a rule-based program, no ML involved. Its workflow is as follows:
 6. Trigger the [Develop operation](#operation-develop) for each cluster, gather resulting actions.
 7. Submit all actions.
 
-## <a name="cluster"></a> Cluster
-
-Clusters govern themselves.
-
-1. They have exclusive (no one else can) control over their perimeter, resources, units within.
-2. It's their exclusive responsibility to raise a [flag](#flags) should they need outer intervention.
-3. It's the [agent's](#agent) exclusive responsibility to observe the flags and react upon them.
-
-### <a name="flags"></a>Flags
-
-Clusters have the ability to signal about their state.
-The [agent](#agent) will issue [operations](#operation) based on these signals.
-
-- `Refuel : city` City can't sustain itself through the upcoming night.
-- `Can_export : city, resource` City can export resources.
-
-## <a name="city"></a>City
 ## <a name="operation"></a>Operations
 Operation is a function with encoded objective.
 Given the subject and resources it generates actions.
@@ -120,3 +151,11 @@ Proceed so that the city can be locked into a sustainable formation.
   - sharing cluster
   - unsustainable
 ker based on his ability to do that and how much effort will that be.
+
+
+Not everyone can do everything this way,
+but that is a small inconvenience far outweighed by the benefits it has for the development.
+- Smaller scope means fewer edge cases to handle.
+- Fewer unhandled edge cases mean fewer conflicts to handle.
+- resulting from unhandled edge cases
+and handle the resulting conflicts afterwards.
