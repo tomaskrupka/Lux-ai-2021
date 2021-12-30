@@ -54,6 +54,7 @@ class Cluster:
     positions = []
     units = []
     mining_positions = set()
+
     def __init__(self, coordinates_list, game_state):
         self.resource_type = game_state.map.get_cell(coordinates_list[0][0], coordinates_list[0][1]).resource.type
         for (a, b) in coordinates_list:

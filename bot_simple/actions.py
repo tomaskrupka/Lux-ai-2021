@@ -36,5 +36,3 @@ def return_to_city(unit: Unit, city: City, game_state: Game):
 
         # No: step towards city.
         return step_towards_city(unit, city)
-
-

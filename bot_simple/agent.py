@@ -85,19 +85,27 @@ def agent(observation, configuration):
         positions = []
 
         # Are you in a city?
-        city_worker_in = next((city for k, city in player.cities.items() if
-                               any(tile for tile in city.citytiles if tile.pos.equals(worker.pos))), None)
+        city_worker_in = next(
+            (
+                city
+                for k, city in player.cities.items()
+                if any(tile for tile in city.citytiles if tile.pos.equals(worker.pos))
+            ),
+            None,
+        )
 
         if city_worker_in is not None:
 
             # Yes: Is any resource adjacent to the city?
-            nearest_adjacent_resource = extensions.get_nearest_adjacent_resource(worker.pos, city_worker_in, game_state,
-                                                                                 max_resource_type)
+            nearest_adjacent_resource = extensions.get_nearest_adjacent_resource(
+                worker.pos, city_worker_in, game_state, max_resource_type
+            )
             if nearest_adjacent_resource is None:
 
                 # No: Will you survive going to the nearest resource?
-                nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(worker, game_state,
-                                                                                              max_resource_type)
+                nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(
+                    worker, game_state, max_resource_type
+                )
                 days_to_night = 30 - (game_state.turn % 40)
                 can_reach_resource = nearest_resource_dist * 2 < days_to_night
 
@@ -121,8 +129,9 @@ def agent(observation, configuration):
 
                     # No: Find a way towards resource
 
-                    nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(worker, game_state,
-                                                                                                  max_resource_type)
+                    nearest_resource_pos, nearest_resource_dist = extensions.get_nearest_resource(
+                        worker, game_state, max_resource_type
+                    )
                     nearest_resource_dir = worker.pos.direction_to(nearest_resource_pos)
                     new_position = extensions.get_new_position(worker.pos, nearest_resource_dir)
 
@@ -144,22 +153,29 @@ def agent(observation, configuration):
                     # Yes: Is any city low on fuel?
                     not_surviving_city = next(
                         (city for k, city in player.cities.items() if not extensions.can_city_survive_night(city)),
-                        None)
+                        None,
+                    )
                     if not_surviving_city is None:
 
-                        actions.append(annotate.sidetext('surviving'))
+                        actions.append(annotate.sidetext("surviving"))
                         # No: Can any city be expanded?
                         expandable_city = next(
-                            (city for k, city in player.cities.items() if
-                             extensions.is_city_expandable(city, game_state)), None)
+                            (
+                                city
+                                for k, city in player.cities.items()
+                                if extensions.is_city_expandable(city, game_state)
+                            ),
+                            None,
+                        )
                         if expandable_city is None:
 
                             # No: Start a city. Are you next to a resource?
                             if extensions.get_adjacent_resource(worker, game_state, max_resource_type) is None:
 
                                 # No: Find a way towards resource, go there.
-                                pos_res, dist_res = extensions.get_nearest_resource(worker, game_state,
-                                                                                    max_resource_type)
+                                pos_res, dist_res = extensions.get_nearest_resource(
+                                    worker, game_state, max_resource_type
+                                )
                                 direction_nearest_resource = worker.pos.direction_to(pos_res)
                                 new_position = extensions.get_new_position(worker.pos, direction_nearest_resource)
 
@@ -179,7 +195,8 @@ def agent(observation, configuration):
                                 else:
                                     # No: Find a way towards empty tile
                                     position_nearest_empty, distance_nearest_empty = extensions.get_nearest_empty_tile(
-                                        worker, game_state)
+                                        worker, game_state
+                                    )
                                     direction_nearest_empty = worker.pos.direction_to(position_nearest_empty)
 
                                     new_position = extensions.get_new_position(worker.pos, direction_nearest_empty)
@@ -190,13 +207,15 @@ def agent(observation, configuration):
 
                         else:
                             # Yes: Return to expandable city
-                            actions.append(annotate.sidetext('expandable'))
+                            actions.append(annotate.sidetext("expandable"))
                             actions.append(actions.return_to_city(worker, expandable_city, game_state))
 
                     else:
                         # Yes: Return to city low on fuel
                         actions.append(actions.return_to_city(worker, not_surviving_city, game_state))
-                        min_distance, min_distance_pos = extensions.get_shortest_way_to_city(worker, not_surviving_city)
+                        min_distance, min_distance_pos = extensions.get_shortest_way_to_city(
+                            worker, not_surviving_city
+                        )
                         direction_low_fuel_city = worker.pos.direction_to(min_distance_pos)
 
                         new_position = extensions.get_new_position(worker.pos, direction_low_fuel_city)

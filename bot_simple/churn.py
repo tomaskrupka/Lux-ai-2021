@@ -13,6 +13,7 @@ class UnitActions:
 
 # 3 if not possible, pick another action from list
 
+
 def solve_churn(units_actions):
     actions = {}
     for unit_actions in units_actions:
@@ -36,7 +37,3 @@ def solve_churn(units_actions):
         if not unit_solved:
             pass
     return actions
-
-
-
-

@@ -187,15 +187,15 @@ def get_possible_moves(unit, game_state: Game):
 
 
 def get_new_position(position, direction):
-    if direction == 's':
+    if direction == "s":
         return Position(position.x, position.y + 1)
-    if direction == 'w':
+    if direction == "w":
         return Position(position.x - 1, position.y)
-    if direction == 'n':
+    if direction == "n":
         return Position(position.x, position.y - 1)
-    if direction == 'e':
+    if direction == "e":
         return Position(position.x + 1, position.y)
-    if direction == 'c':
+    if direction == "c":
         return position
 
 
@@ -204,13 +204,13 @@ def get_directions_to_target(position_from, position_to):
     y_diff = position_to.y - position_from.y
     directions = []
     if x_diff > 0:
-        directions.append('e')
+        directions.append("e")
     if x_diff < 0:
-        directions.append('w')
+        directions.append("w")
     if y_diff > 0:
-        directions.append('s')
+        directions.append("s")
     if y_diff < 0:
-        directions.append('n')
+        directions.append("n")
     if len(directions) == 0:
-        directions.append('c')
+        directions.append("c")
     return directions
