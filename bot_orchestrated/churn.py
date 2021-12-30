@@ -13,8 +13,9 @@ def solve_churn_with_score(positions_options: [], positions_scores: []):
         return move_solutions, 0
     for position, options in valid_positions_options:
         for option in options:
-            positions_options_reduction = get_position_options_reduction(valid_positions_options, position,
-                                                                         option).items()
+            positions_options_reduction = get_position_options_reduction(
+                valid_positions_options, position, option
+            ).items()
             if len(positions_options_reduction) > 0:
                 move_solutions_reduction, score = solve_churn_with_score(positions_options_reduction, positions_scores)
                 pos_opt_score = score + positions_scores[option]

@@ -40,7 +40,12 @@ def get_adjacent_positions_within_cluster(p: Position, c: Cluster):
     adjacent_positions_within_cluster = []
     for cluster_pos in c.cell_infos:
         if cluster_pos.x == p.x or cluster_pos.y == p.y:
-            if cluster_pos.x - p.x == 1 or p.x - cluster_pos.x == 1 or cluster_pos.y - p.y == 1 or p.y - cluster_pos.y == 1:
+            if (
+                cluster_pos.x - p.x == 1
+                or p.x - cluster_pos.x == 1
+                or cluster_pos.y - p.y == 1
+                or p.y - cluster_pos.y == 1
+            ):
                 adjacent_positions_within_cluster.append(cluster_pos)
     return adjacent_positions_within_cluster
 
@@ -48,15 +53,21 @@ def get_adjacent_positions_within_cluster(p: Position, c: Cluster):
 def get_next_to_adjacent_positions_within_cluster(p: Position, c: Cluster):
     positions = []
     for cluster_pos in c.cell_infos:
-        if (cluster_pos.x == p.x and abs(cluster_pos.y - p.y) == 2) or (cluster_pos.y == p.y and abs(cluster_pos.y - p.y) == 2) or (abs(cluster_pos.x - p.x) == abs(cluster_pos.y - p.y) == 1):
+        if (
+            (cluster_pos.x == p.x and abs(cluster_pos.y - p.y) == 2)
+            or (cluster_pos.y == p.y and abs(cluster_pos.y - p.y) == 2)
+            or (abs(cluster_pos.x - p.x) == abs(cluster_pos.y - p.y) == 1)
+        ):
             positions.append(cluster_pos)
 
 
 def can_mine_on_position(cluster: Cluster, position: Position, mined_resource):
     cell_info = cluster.cell_infos[position]
-    can_mine_here = cell_info.mining_potential['WOOD'] > 0 or \
-                    (cell_info.mining_potential['COAL'] > 0 and not mined_resource == 'WOOD') or \
-                    (cell_info.mining_potential['URANIUM'] > 0 and mined_resource == 'URANIUM')
+    can_mine_here = (
+        cell_info.mining_potential["WOOD"] > 0
+        or (cell_info.mining_potential["COAL"] > 0 and not mined_resource == "WOOD")
+        or (cell_info.mining_potential["URANIUM"] > 0 and mined_resource == "URANIUM")
+    )
     return can_mine_here
 
 
@@ -118,21 +129,21 @@ def get_cities_fuel_balance(cluster: Cluster, nights):
 
 
 def get_mining_potential_aggregate(mining_potential, mined_resource):
-    if mined_resource == 'WOOD':
-        return mining_potential['WOOD'] * 20
-    elif mined_resource == 'COAL':
-        return mining_potential['WOOD'] * 20 + mining_potential['COAL'] * 50
-    elif mined_resource == 'URANIUM':
-        return mining_potential['WOOD'] * 20 + mining_potential['COAL'] * 50 + mining_potential['URANIUM'] + 80
+    if mined_resource == "WOOD":
+        return mining_potential["WOOD"] * 20
+    elif mined_resource == "COAL":
+        return mining_potential["WOOD"] * 20 + mining_potential["COAL"] * 50
+    elif mined_resource == "URANIUM":
+        return mining_potential["WOOD"] * 20 + mining_potential["COAL"] * 50 + mining_potential["URANIUM"] + 80
 
 
 def get_advanced_resources_mining_potential(mining_potential, mined_resource):
-    if mined_resource == 'WOOD':
+    if mined_resource == "WOOD":
         return 0
-    if mined_resource == 'COAL':
-        return mining_potential['COAL']
-    if mined_resource == 'URANIUM':
-        return mining_potential['COAL'] + mining_potential['URANIUM']
+    if mined_resource == "COAL":
+        return mining_potential["COAL"]
+    if mined_resource == "URANIUM":
+        return mining_potential["COAL"] + mining_potential["URANIUM"]
 
 
 def get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids):
@@ -200,7 +211,8 @@ def get_cities_scores_mineability(cluster: Cluster, mined_resource):
         for city_tile in city.citytiles:
             city_score += 1 - len(cluster.cell_infos[city_tile.pos].my_units)
             city_mineability[city_tile.pos] = get_mining_potential_aggregate(
-                cluster.cell_infos[city_tile.pos].mining_potential, mined_resource)
+                cluster.cell_infos[city_tile.pos].mining_potential, mined_resource
+            )
         cities_mineabilities[city_id] = city_mineability
         cities_scores[city_id] = city_score
     return cities, cities_scores, cities_mineabilities
@@ -218,7 +230,7 @@ def get_stuck_units_on_mining_position(cluster: Cluster, cannot_act_units_ids):
     stuck_units_positions = []
     for pos, cell_info in cluster.cell_infos.items():
         if cell_info.my_units and not cell_info.my_city:
-            unit:Unit
+            unit: Unit
             unit = cell_info.my_units[0]
             if unit.cargo.wood == 0 and unit.cargo.coal < 80 and unit.cargo.uranium < 94:
                 if unit.id not in cannot_act_units_ids:
@@ -227,7 +239,7 @@ def get_stuck_units_on_mining_position(cluster: Cluster, cannot_act_units_ids):
 
 
 def get_stuck_units_in_city(cluster: Cluster, cannot_act_units_ids):
-    stuck_units_ids =[]
+    stuck_units_ids = []
     for pos, cell_info in cluster.cell_infos.items():
         if len(cell_info.my_units) > 1 and cell_info.my_city:
             for unit in cell_info.my_units:

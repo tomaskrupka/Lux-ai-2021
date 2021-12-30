@@ -7,8 +7,11 @@ from lux.game_objects import City
 
 
 def get_adjacent_positions(p: Position, w):
-    return [Position(a, b) for (a, b) in [(p.x - 1, p.y), (p.x + 1, p.y), (p.x, p.y - 1), (p.x, p.y + 1)] if
-            (0 <= a < w and 0 <= b < w)]
+    return [
+        Position(a, b)
+        for (a, b) in [(p.x - 1, p.y), (p.x + 1, p.y), (p.x, p.y - 1), (p.x, p.y + 1)]
+        if (0 <= a < w and 0 <= b < w)
+    ]
 
 
 def get_adjacent_positions_cluster(coordinates, w):
@@ -30,15 +33,15 @@ def get_possible_moves(unit, game_state: Game):
 
 
 def get_new_position(position, direction):
-    if direction == 's':
+    if direction == "s":
         return Position(position.x, position.y + 1)
-    if direction == 'w':
+    if direction == "w":
         return Position(position.x - 1, position.y)
-    if direction == 'n':
+    if direction == "n":
         return Position(position.x, position.y - 1)
-    if direction == 'e':
+    if direction == "e":
         return Position(position.x + 1, position.y)
-    if direction == 'c':
+    if direction == "c":
         return position
 
 
@@ -46,14 +49,14 @@ def get_directions_to_target(position_from, position_to):
     x_diff = position_to.x - position_from.x
     y_diff = position_to.y - position_from.y
     if x_diff > 0:
-        return 'e'
+        return "e"
     if x_diff < 0:
-        return 'w'
+        return "w"
     if y_diff > 0:
-        return 's'
+        return "s"
     if y_diff < 0:
-        return 'n'
-    return 'c'
+        return "n"
+    return "c"
 
 
 def get_all_directions_to_target(position_from, position_to):
@@ -61,15 +64,15 @@ def get_all_directions_to_target(position_from, position_to):
     y_diff = position_to.y - position_from.y
     directions = []
     if x_diff > 0:
-        directions.append(('e', x_diff))
+        directions.append(("e", x_diff))
     if x_diff < 0:
-        directions.append(('w', -x_diff))
+        directions.append(("w", -x_diff))
     if y_diff > 0:
-        directions.append(('s', y_diff))
+        directions.append(("s", y_diff))
     if y_diff < 0:
-        directions.append(('n', -y_diff))
+        directions.append(("n", -y_diff))
     if not directions:
-        directions.append(('c', 0))
+        directions.append(("c", 0))
     directions.sort(key=lambda x: x[1], reverse=True)
     return [d[0] for d in directions]
 
@@ -79,21 +82,26 @@ def get_days_to_night(turn):
 
 
 def get_mined_resource(research_level):
-    mined_resource = 'WOOD'
+    mined_resource = "WOOD"
     if research_level >= 50:
-        mined_resource = 'COAL'
+        mined_resource = "COAL"
     if research_level >= 200:
-        mined_resource = 'URANIUM'
+        mined_resource = "URANIUM"
     return mined_resource
 
 
 def get_mined_resource_for_cluster_development(research_level, turn, cities_count):
-    mined_resource = 'WOOD'
-    next_night_research_level = research_level + get_days_to_night(turn) * cities_count / game_constants.GAME_CONSTANTS["BOT_SETTINGS"]["CITY_RESEARCH_PERIOD_TURNS"]
+    mined_resource = "WOOD"
+    next_night_research_level = (
+        research_level
+        + get_days_to_night(turn)
+        * cities_count
+        / game_constants.GAME_CONSTANTS["BOT_SETTINGS"]["CITY_RESEARCH_PERIOD_TURNS"]
+    )
     if next_night_research_level >= 50:
-        mined_resource = 'COAL'
+        mined_resource = "COAL"
     if next_night_research_level >= 200:
-        mined_resource = 'URANIUM'
+        mined_resource = "URANIUM"
     return mined_resource
 
 

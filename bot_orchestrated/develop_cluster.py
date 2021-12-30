@@ -13,6 +13,7 @@ from lux.game_map import Position
 
 # TODO: moved units out of each method. -> a, b, m, then input into the next one.
 
+
 def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevelopmentSettings, game_state: Game):
 
     actions = []  # To submit to the agent.
@@ -26,7 +27,9 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     cities_scores: dict  # id = city_score
     cities_mineabilities: dict  # id = (dict: pos = mining_potential)
 
-    cities, cities_scores, cities_mineabilities = ce.get_cities_scores_mineability(cluster, cluster_development_settings.mined_resource)
+    cities, cities_scores, cities_mineabilities = ce.get_cities_scores_mineability(
+        cluster, cluster_development_settings.mined_resource
+    )
 
     # HIGHLIGHT EXPORT SETTINGS
 
@@ -47,7 +50,8 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     # CITY TILE ACTIONS
 
     a, units_allowance, units_surplus, researched = dca.build_workers_or_research(
-        cluster, cluster_development_settings, 2)
+        cluster, cluster_development_settings, 2
+    )
     actions += a
 
     # BUILD CITY TILES OR REFUEL CITIES FROM UNITS WITH NON-WOOD CARGO INSTEAD OF BUILDING
@@ -68,7 +72,9 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     push_out_positions: set  # positions to export from without my units
     push_out_units: set  # units next to export positions
 
-    push_out_units, push_out_positions = ce.detect_push_out_units_positions_anywhere(cluster, cluster_development_settings)
+    push_out_units, push_out_positions = ce.detect_push_out_units_positions_anywhere(
+        cluster, cluster_development_settings
+    )
     to_push_out_count = units_surplus
 
     if not night_mode:
@@ -78,7 +84,8 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
             to_push_out_count,
             blocked_positions,
             cannot_act_units_ids,
-            push_out_units)
+            push_out_units,
+        )
         actions += a
         blocked_positions += b
         cannot_act_units_ids += c
@@ -86,11 +93,8 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
         # PUSH OUT
 
         a, b, c = dca.push_out_from_anywhere(
-            cluster,
-            blocked_positions,
-            remains_to_push_out,
-            push_out_positions,
-            cannot_act_units_ids)
+            cluster, blocked_positions, remains_to_push_out, push_out_positions, cannot_act_units_ids
+        )
 
         actions += a
         blocked_positions += b
@@ -108,7 +112,8 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     blocked_positions_now = ce.get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids)
 
     a, b, c, unmoved_units_on_resource = dca.step_out_of_resources_into_adjacent_empty(
-        cluster, cluster_development_settings.mined_resource, blocked_positions_now, cannot_act_units_ids)
+        cluster, cluster_development_settings.mined_resource, blocked_positions_now, cannot_act_units_ids
+    )
     actions += a
     blocked_positions += b
     cannot_act_units_ids += c
@@ -129,7 +134,8 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
             cluster,
             cluster_development_settings,
             blocked_positions_now,
-            cannot_act_units_ids)
+            cannot_act_units_ids,
+        )
         actions += a
         blocked_positions += b
         cannot_act_units_ids += c
@@ -145,22 +151,19 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     # STEP OUT OF CITIES INTO MINING POSITIONS
 
     if cluster_development_settings.turn == 15:
-        print('my turn')
+        print("my turn")
 
     if not night_mode:
         a, b, c = dca.step_out_of_cities_into_mining(
-            cluster,
-            cluster_development_settings,
-            blocked_positions,
-            cannot_act_units_ids)
+            cluster, cluster_development_settings, blocked_positions, cannot_act_units_ids
+        )
         actions += a
         cannot_act_units_ids += c
 
     # MOVE WITHIN CITIES INTO BETTER MINING POSITIONS
 
     if night_mode:
-        a, c = dca.step_within_cities_into_better_mining_positions(cities_mineabilities, cluster,
-                                                                   cannot_act_units_ids)
+        a, c = dca.step_within_cities_into_better_mining_positions(cities_mineabilities, cluster, cannot_act_units_ids)
         actions += a
         cannot_act_units_ids += c
     #
@@ -178,15 +181,11 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
     if stuck_units_on_mining:
         blocked_positions_now = ce.get_blocked_positions_now(cluster, blocked_positions, cannot_act_units_ids)
         a, b, c, stuck_units_on_mining = dca.step_within_resources(
-            stuck_units_on_mining,
-            cluster,
-            cluster_development_settings,
-            blocked_positions_now,
-            cannot_act_units_ids)
+            stuck_units_on_mining, cluster, cluster_development_settings, blocked_positions_now, cannot_act_units_ids
+        )
         actions += a
         blocked_positions += b
         cannot_act_units_ids += c
-
 
     # STEP OUT OF RESOURCE INTO ADJACENT MINING POSITION AT NIGHT IF MULTIPLE UNTIS ON POSITION
 
@@ -195,10 +194,8 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     if night_mode:
         a, b, c = dca.step_out_of_cities_into_mining(
-            cluster,
-            cluster_development_settings,
-            blocked_positions,
-            disallowed_units)
+            cluster, cluster_development_settings, blocked_positions, disallowed_units
+        )
         actions += a
         cannot_act_units_ids += c
 
@@ -217,7 +214,4 @@ def develop_cluster(cluster: Cluster, cluster_development_settings: ClusterDevel
 
     # UNITS IN A CITY AT NIGHT THAT IS ABOUT TO DIE THE NEXT ROUND
 
-
-
     return [actions, units_allowance, researched]
-

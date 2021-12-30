@@ -8,16 +8,17 @@ from lux.game_objects import Player, CityTile, City, Unit
 
 class CellInfo:
     def __init__(
-            self,
-            position: Position,
-            is_empty: bool,
-            my_city_tile: CityTile,
-            opponent_city_tile: CityTile,
-            my_city: City,
-            opponent_city: City,
-            resource: Resource,
-            my_units: list,
-            opponent_units: list):
+        self,
+        position: Position,
+        is_empty: bool,
+        my_city_tile: CityTile,
+        opponent_city_tile: CityTile,
+        my_city: City,
+        opponent_city: City,
+        resource: Resource,
+        my_units: list,
+        opponent_units: list,
+    ):
         self.adjacent_positions = None
         self.mining_potential = None
         self.position = position
@@ -32,12 +33,9 @@ class CellInfo:
 
 
 class ClusterDevelopmentSettings:
-    def __init__(self,
-                 turn: int,
-                 units_build_allowance: int,
-                 units_export_positions: list,
-                 research_level: int,
-                 width: int):
+    def __init__(
+        self, turn: int, units_build_allowance: int, units_export_positions: list, research_level: int, width: int
+    ):
         self.turn = turn
         self.units_build_allowance = units_build_allowance
         self.units_export_positions = units_export_positions
@@ -47,10 +45,16 @@ class ClusterDevelopmentSettings:
 
 
 class Cluster:
-
-    def __init__(self, cluster_id, non_empty_coordinates, game_state: Game, my_city_tiles, opponent_city_tiles,
-                 my_units,
-                 opponent_units):
+    def __init__(
+        self,
+        cluster_id,
+        non_empty_coordinates,
+        game_state: Game,
+        my_city_tiles,
+        opponent_city_tiles,
+        my_units,
+        opponent_units,
+    ):
         self.cluster_id = cluster_id
         self.cell_infos = dict()
         self.resource_positions = set()
@@ -61,7 +65,7 @@ class Cluster:
         self.perimeter = [pos for pos in all_cluster_coordinates if pos not in non_empty_coordinates]
         self.is_me_present = False
         self.is_opponent_present = False
-        self.resource_amounts_total = {'wood': 0, 'coal': 0, 'uranium': 0}
+        self.resource_amounts_total = {"wood": 0, "coal": 0, "uranium": 0}
         for p in all_cluster_coordinates:
             cell_info = game_state.map.get_cell_by_pos(p)
             my_city_tile = my_city_tiles[p][1] if p in my_city_tiles else None
@@ -79,7 +83,7 @@ class Cluster:
                 resource=cell_info.resource,
                 is_empty=my_city_tile is None and opponent_city_tile is None and not has_resource,
                 my_units=my_units[p] if p in my_units else [],
-                opponent_units=opponent_units[p] if p in opponent_units else []
+                opponent_units=opponent_units[p] if p in opponent_units else [],
             )
 
             self.cell_infos[p] = cell_info
@@ -100,12 +104,13 @@ class Cluster:
                     if cell_info.resource is None:
                         continue
                     else:
-                        for RESOURCE_TYPE, resource_type in GAME_CONSTANTS['RESOURCE_TYPES'].items():
+                        for RESOURCE_TYPE, resource_type in GAME_CONSTANTS["RESOURCE_TYPES"].items():
                             if cell_info.resource.type == resource_type:
                                 amount = cell_info.resource.amount
-                                collection_rate = GAME_CONSTANTS['PARAMETERS']['WORKER_COLLECTION_RATE'][RESOURCE_TYPE]
-                                resource_amounts[
-                                    RESOURCE_TYPE] += amount if amount < collection_rate else collection_rate
+                                collection_rate = GAME_CONSTANTS["PARAMETERS"]["WORKER_COLLECTION_RATE"][RESOURCE_TYPE]
+                                resource_amounts[RESOURCE_TYPE] += (
+                                    amount if amount < collection_rate else collection_rate
+                                )
                                 break
             self.cell_infos[cell_pos].mining_potential = resource_amounts
         self.reachable_export_positions = None

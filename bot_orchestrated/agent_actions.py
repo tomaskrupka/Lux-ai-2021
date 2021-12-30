@@ -7,19 +7,17 @@ from lux.game_objects import Unit
 
 
 def send_free_units_to_empty_clusters(
-        free_units_positions,
-        scores_clusters,
-        my_units_dict,
-        turn,
-        blocked_positions,
-        cannot_act_units_ids):
+    free_units_positions, scores_clusters, my_units_dict, turn, blocked_positions, cannot_act_units_ids
+):
     a = []
     b = []
     c = []
     not_moved_units_positions = set(free_units_positions)
     clusters_ids_units = dict()  # cluster_id = count of units going there
     for score, free_cluster in scores_clusters:
-        clusters_ids_units[free_cluster.cluster_id] = game_constants.GAME_CONSTANTS["BOT_SETTINGS"]["MAX_FREE_UNITS_PER_CLUSTER"]
+        clusters_ids_units[free_cluster.cluster_id] = game_constants.GAME_CONSTANTS["BOT_SETTINGS"][
+            "MAX_FREE_UNITS_PER_CLUSTER"
+        ]
 
     for free_unit_position in free_units_positions:
         unit: Unit
@@ -29,7 +27,9 @@ def send_free_units_to_empty_clusters(
             # choose the highest ranking free_cluster that you can make it to.
             for score, free_cluster in scores_clusters:
                 if max_units_per_cluster > clusters_ids_units[free_cluster.cluster_id]:
-                    distance, perimeter_position = extensions.get_distance_position_to_cluster(free_unit_position, free_cluster)
+                    distance, perimeter_position = extensions.get_distance_position_to_cluster(
+                        free_unit_position, free_cluster
+                    )
                     unit_range = extensions.get_unit_range(100 - unit.get_cargo_space_left(), turn)
                     if distance < unit_range:
                         directions = extensions.get_all_directions_to_target(free_unit_position, perimeter_position)
@@ -39,7 +39,9 @@ def send_free_units_to_empty_clusters(
                             if new_pos not in blocked_positions and new_pos not in b:
                                 free_directions.append((direction, new_pos))
                         if free_directions:
-                            direction = free_directions[0] # if len(free_directions) == 1 else free_directions[turn % 2]
+                            direction = free_directions[
+                                0
+                            ]  # if len(free_directions) == 1 else free_directions[turn % 2]
                             a.append(unit.move(direction[0]))
                             b.append(direction[1])
                             c.append(unit.id)
@@ -72,7 +74,7 @@ def send_units_to_closest_cluster(units_positions, clusters, my_units_dict, bloc
                     if new_pos not in blocked_positions and new_pos not in b:
                         free_directions.append((direction, new_pos))
                 if free_directions:
-                    direction = free_directions[0] # if len(free_directions) == 1 else free_directions[turn % 2]
+                    direction = free_directions[0]  # if len(free_directions) == 1 else free_directions[turn % 2]
                     a.append(unit.move(direction[0]))
                     b.append(direction[1])
                     c.append(unit.id)
@@ -81,11 +83,8 @@ def send_units_to_closest_cluster(units_positions, clusters, my_units_dict, bloc
 
 
 def develop_clusters(
-        developing_clusters,
-        developing_clusters_requirements,
-        remaining_units_allowance,
-        research_level,
-        game_state: Game):
+    developing_clusters, developing_clusters_requirements, remaining_units_allowance, research_level, game_state: Game
+):
     a = []
     r = remaining_units_allowance
     researched = 0
@@ -98,12 +97,13 @@ def develop_clusters(
                 units_build_allowance=r,
                 units_export_positions=export_positions,
                 research_level=research_level + researched,
-                width=game_state.map_width),
-            game_state)
+                width=game_state.map_width,
+            ),
+            game_state,
+        )
         if 0 >= r != development_result[1]:
-            print('fixme: units allowance changed when building was not permitted.')
+            print("fixme: units allowance changed when building was not permitted.")
         r = development_result[1]
         a += development_result[0]
         researched += development_result[2]
     return a, r
-

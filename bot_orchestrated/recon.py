@@ -31,7 +31,9 @@ def detect_clusters(game_state, my_city_tiles, opponent_city_tiles, my_units, op
     clusters = dict()
     coordinates_lists = detect_clusters_coordinates(game_state, my_city_tiles)
     for cluster_id, coordinates_list in coordinates_lists.items():
-        clusters[cluster_id] = Cluster(cluster_id, coordinates_list, game_state, my_city_tiles, opponent_city_tiles, my_units, opponent_units)
+        clusters[cluster_id] = Cluster(
+            cluster_id, coordinates_list, game_state, my_city_tiles, opponent_city_tiles, my_units, opponent_units
+        )
     return clusters
 
 
@@ -66,8 +68,11 @@ def detect_clusters_coordinates(game_state: Game, player_city_tiles):
 
 def _has_perimeter_overlap(x, y, cluster):
     for p in cluster:
-        if (p.x == x and abs(p.y - y) <= 2) or ((p.y == y) and abs(p.x - x) <= 2) or (
-                (abs(p.y - y) == 1) and (abs(p.x - x) == 1)):
+        if (
+            (p.x == x and abs(p.y - y) <= 2)
+            or ((p.y == y) and abs(p.x - x) <= 2)
+            or ((abs(p.y - y) == 1) and (abs(p.x - x) == 1))
+        ):
             return True
     return False
 
@@ -84,6 +89,7 @@ def get_closest_cluster(position: Position, clusters: [Cluster]):
                 min_distance_cluster = c
                 min_distance_pos = pos
     return min_distance_cluster, min_distance_pos
+
 
 #
 # def get_cluster_export_positions_for_free_cluster(free_cluster: Cluster, exporting_cluster: Cluster, w):

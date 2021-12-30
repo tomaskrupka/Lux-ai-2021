@@ -77,11 +77,11 @@ def prioritize_all_clusters_for_development(clusters, mined_resource_for_develop
     scores_clusters = []
     cluster: Cluster
     for cluster in free_clusters_dict.values():
-        cluster_score = cluster.resource_amounts_total['wood']
-        if mined_resource_for_development != 'wood':
-            cluster_score += cluster.resource_amounts_total['coal']
-            if mined_resource_for_development == 'uranium':
-                cluster_score += cluster.resource_amounts_total['uranium']
+        cluster_score = cluster.resource_amounts_total["wood"]
+        if mined_resource_for_development != "wood":
+            cluster_score += cluster.resource_amounts_total["coal"]
+            if mined_resource_for_development == "uranium":
+                cluster_score += cluster.resource_amounts_total["uranium"]
         scores_clusters.append((cluster_score, cluster))
     scores_clusters.sort(key=lambda x: x[0], reverse=True)
     return scores_clusters
@@ -89,9 +89,7 @@ def prioritize_all_clusters_for_development(clusters, mined_resource_for_develop
 
 def set_developing_clusters_export_positions(developing_clusters, width):
     for developing_cluster in developing_clusters:
-        accessible_positions, export_positions = ce.get_accessible_and_export_positions(
-            developing_cluster,
-            width)
+        accessible_positions, export_positions = ce.get_accessible_and_export_positions(developing_cluster, width)
         developing_cluster.set_reachable_export_positions(export_positions)
         developing_cluster.set_reachable_positions(accessible_positions)
 

@@ -13,16 +13,13 @@ if __name__ == "__main__":
         except EOFError as eof:
             raise SystemExit(eof)
 
-
     step = 0
-
 
     class Observation(Dict[str, any]):
         def __init__(self, player=0) -> None:
             self.player = player
             # self.updates = []
             # self.step = 0
-
 
     observation = Observation()
     observation["updates"] = []
